@@ -9,6 +9,7 @@
 #include "esphome/core/component.h"
 #include "micronova.h"
 #include "write_policy.h"
+#include "polling_plan.h"
 
 namespace esphome::palazzetti {
 
@@ -33,6 +34,15 @@ struct Result {
 };
 
 using Callback = std::function<void(const Result &)>;
+
+struct PollSample {
+  uint32_t sequence;
+  uint32_t uptime_ms;
+  uint32_t revision;
+  Memory memory;
+  uint16_t address;
+  Result result;
+};
 
 struct Request {
   Kind kind{Kind::READ};
@@ -93,6 +103,11 @@ class Palazzetti : public Component, public uart::UARTDevice {
   uint32_t n_timeout() const { return this->n_timeout_; }
   uint32_t n_bad() const { return this->n_bad_; }
   uint32_t n_dropped() const { return this->n_dropped_; }
+  PollingPlan &polling_plan() { return this->polling_plan_; }
+  const std::deque<PollSample> &poll_samples() const { return this->poll_samples_; }
+  uint32_t poll_sequence() const { return this->poll_sequence_; }
+  uint32_t boot_id() const { return this->boot_id_; }
+  static constexpr size_t POLL_HISTORY = 32;
 
  protected:
   enum class State : uint8_t { IDLE, WAIT };
@@ -101,6 +116,7 @@ class Palazzetti : public Component, public uart::UARTDevice {
   void receive_(uint32_t now);
   void finish_(bool timeout, uint32_t now);
   void notify_(Memory mem, uint16_t addr, uint8_t value);
+  void poll_plan_(uint32_t now);
 
   EchoMode echo_mode_{EchoMode::AUTO};
   int8_t echo_latched_{-1};  // AUTO only: -1 undecided, 0 no echo, 1 echo
@@ -110,6 +126,11 @@ class Palazzetti : public Component, public uart::UARTDevice {
   uint8_t max_queue_{48};
   bool polling_paused_{false};
   WritePolicy write_policy_;
+  PollingPlan polling_plan_;
+  std::deque<PollSample> poll_samples_;
+  bool plan_pending_{false};
+  uint32_t poll_sequence_{0};
+  uint32_t boot_id_{0};
 
   std::deque<Request> queue_;
   Request current_;

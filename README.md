@@ -45,6 +45,7 @@ The atlas is generated from the public map profiles, without private captures.
 | [RAM hex map](docs/memory-ram.html) / [EEPROM hex map](docs/memory-eeprom.html) | offline interactive bytes, regions and struct members; profile selection, hover details and historical value evolution |
 | [esphome.md](docs/esphome.md) | component architecture, build, configuration reference |
 | [reverse-engineering.md](docs/reverse-engineering.md) | `plz` workflow for people and agents, analysis, safety, emulator |
+| [acquisition.md](docs/acquisition.md) | repeated checked backups, editable autonomous polling plans and live evidence recording |
 | [connection-box.md](docs/connection-box.md) | Palazzetti Connection Box: its API, and what its firmware can teach |
 | [references.md](docs/references.md) | related projects (ESPHome, Micronova, Palazzetti/Fumis), protocol notes, manuals, scaffolding |
 | [firmware.md](docs/firmware.md) | firmware identification and consolidated Lola/Martina findings |

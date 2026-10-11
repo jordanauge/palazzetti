@@ -24,6 +24,10 @@ static const char *const HELP =
     "# info                         bus statistics\n"
     "# pause | resume               stop/restart entity polling\n"
     "# monitor <on|off>             stream every value seen on the bus ('m mem addr value')\n"
+    "# poll list | start | stop | clear\n"
+    "# poll set <mem> <start> <end> <interval_ms> (32 non-overlapping ranges)\n"
+    "# poll remove <mem> <start> <end>\n"
+    "# poll events <after_sequence> checked retained samples (32 results)\n"
     "ok help\n";
 
 static const char *mem_str(Memory m) { return m == Memory::EEPROM ? "eeprom" : "ram"; }
@@ -50,6 +54,18 @@ static bool parse_num(const char *s, long max, long *out) {
   if (end == s || *end != '\0' || v < 0 || v > max)
     return false;
   *out = v;
+  return true;
+}
+
+static bool parse_sequence(const char *s, uint32_t *out) {
+  if (s == nullptr || s[0] == '-')
+    return false;
+  char *end;
+  errno = 0;
+  unsigned long value = strtoul(s, &end, 0);
+  if (end == s || *end != '\0' || errno == ERANGE || value > UINT32_MAX)
+    return false;
+  *out = value;
   return true;
 }
 
@@ -179,9 +195,9 @@ void LabServer::send_(const char *fmt, ...) {
 }
 
 void LabServer::handle_(char *line) {
-  char *argv[5] = {};
+  char *argv[8] = {};
   int argc = 0;
-  for (char *tok = strtok(line, " \t"); tok && argc < 5; tok = strtok(nullptr, " \t"))
+  for (char *tok = strtok(line, " \t"); tok && argc < 8; tok = strtok(nullptr, " \t"))
     argv[argc++] = tok;
   const char *cmd = argv[0];
   if (cmd == nullptr)
@@ -190,7 +206,9 @@ void LabServer::handle_(char *line) {
   long addr, val, end;
   auto *bus = this->parent_;
 
-  if (!strcmp(cmd, "help")) {
+  if (!strcmp(cmd, "poll")) {
+    this->poll_command_(argv, argc);
+  } else if (!strcmp(cmd, "help")) {
     this->out_ += HELP;
   } else if (!strcmp(cmd, "info")) {
     this->send_("ok info queue=%u ok=%u timeout=%u bad=%u dropped=%u paused=%d echo=%s write=%d monitor=%d eeprom=%d rules=%u\n",
@@ -210,15 +228,7 @@ void LabServer::handle_(char *line) {
     this->busy_ = true;
     bool queued = bus->read(mem, addr, [this, mem, addr, inspect](const Result &res) {
       if (inspect) {
-        uint8_t frame[2];
-        micronova::build_read(frame, mem, addr);
-        char reply[2 * MAX_REPLY + 1] = {};
-        for (uint8_t i = 0; i < res.reply_len; i++)
-          snprintf(reply + 2 * i, 3, "%02X", res.reply[i]);
-        this->send_("ok i mem=%s addr=0x%03X valid=%d value=0x%02X check=%s tx=%02X%02X rx=%s attempts=%u ms=%u\n",
-                    mem_str(mem), (unsigned) addr, res.ok, res.value,
-                    res.timeout ? "timeout" : micronova::reply_check_str(res.check),
-                    frame[0], frame[1], reply, res.attempts, (unsigned) res.elapsed_ms);
+        this->send_read_("ok i", mem, addr, res);
       } else if (res.ok)
         this->send_("ok r %s 0x%03X 0x%02X %s\n", mem_str(mem), (unsigned) addr, res.value,
                     micronova::reply_check_str(res.check));
@@ -293,6 +303,70 @@ void LabServer::handle_(char *line) {
     }
   } else {
     this->send_("err unknown or malformed command; type 'help'\n");
+  }
+}
+
+void LabServer::send_read_(const char *prefix, Memory mem, uint16_t addr, const Result &res) {
+  uint8_t frame[2];
+  micronova::build_read(frame, mem, addr);
+  char reply[2 * MAX_REPLY + 1] = {};
+  for (uint8_t i = 0; i < res.reply_len; i++)
+    snprintf(reply + 2 * i, 3, "%02X", res.reply[i]);
+  this->send_("%s mem=%s addr=0x%03X valid=%d value=0x%02X check=%s tx=%02X%02X rx=%s attempts=%u ms=%u\n",
+              prefix, mem_str(mem), addr, res.ok, res.value,
+              res.timeout ? "timeout" : micronova::reply_check_str(res.check),
+              frame[0], frame[1], reply, res.attempts, (unsigned) res.elapsed_ms);
+}
+
+void LabServer::poll_command_(char **argv, int argc) {
+  auto *bus = this->parent_;
+  auto &plan = bus->polling_plan();
+  const char *action = argc >= 2 ? argv[1] : "";
+  Memory mem;
+  long start, end, interval;
+  uint32_t since;
+  if (argc == 2 && !strcmp(action, "list")) {
+    for (const auto &rule : plan.rules())
+      this->send_("p mem=%s start=0x%03X end=0x%03X interval_ms=%u\n",
+                  mem_str(rule.memory), rule.start, rule.end, (unsigned) rule.interval_ms);
+    this->send_("ok poll running=%d revision=%u boot=%u seq=%u capacity=%u history=%u\n",
+                plan.running(), (unsigned) plan.revision(), (unsigned) bus->boot_id(),
+                (unsigned) bus->poll_sequence(), (unsigned) PollingPlan::CAPACITY, (unsigned) Palazzetti::POLL_HISTORY);
+  } else if (argc == 2 && (!strcmp(action, "start") || !strcmp(action, "stop") || !strcmp(action, "clear"))) {
+    if (!strcmp(action, "clear")) {
+      plan.set_running(false);
+      plan.clear();
+    } else
+      plan.set_running(!strcmp(action, "start"));
+    this->send_("ok poll %s\n", action);
+  } else if (argc == 6 && !strcmp(action, "set") && parse_mem(argv[2], &mem) &&
+             parse_num(argv[3], micronova::MAX_ADDRESS, &start) &&
+             parse_num(argv[4], micronova::MAX_ADDRESS, &end) &&
+             parse_num(argv[5], PollingPlan::MAX_INTERVAL, &interval)) {
+    bool ok = plan.set(mem, start, end, interval, millis());
+    this->send_("%s poll %s\n", ok ? "ok" : "err",
+                ok ? "set" : "invalid range/interval, overlapping rule or plan full");
+  } else if (argc == 5 && !strcmp(action, "remove") && parse_mem(argv[2], &mem) &&
+             parse_num(argv[3], micronova::MAX_ADDRESS, &start) &&
+             parse_num(argv[4], micronova::MAX_ADDRESS, &end)) {
+    this->send_("%s poll remove\n", plan.remove(mem, start, end) ? "ok" : "err");
+  } else if (argc == 3 && !strcmp(action, "events") && parse_sequence(argv[2], &since)) {
+    const auto &history = bus->poll_samples();
+    uint32_t oldest = history.empty() ? bus->poll_sequence() + 1 : history.front().sequence;
+    uint32_t lost = since < oldest - 1 ? oldest - 1 - since : 0;
+    for (const auto &sample : history) {
+      if (sample.sequence <= since)
+        continue;
+      char prefix[100];
+      snprintf(prefix, sizeof(prefix), "s seq=%u uptime_ms=%u revision=%u",
+               (unsigned) sample.sequence, (unsigned) sample.uptime_ms, (unsigned) sample.revision);
+      this->send_read_(prefix, sample.memory, sample.address, sample.result);
+    }
+    this->send_("ok events boot=%u latest=%u oldest=%u lost=%u uptime_ms=%u\n",
+                (unsigned) bus->boot_id(), (unsigned) bus->poll_sequence(), (unsigned) oldest,
+                (unsigned) lost, (unsigned) millis());
+  } else {
+    this->send_("err malformed poll command; type help\n");
   }
 }
 

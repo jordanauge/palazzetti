@@ -1,9 +1,11 @@
 """Fake lab server over a memory image: lets the tooling (and an agent) be exercised offline."""
 
 import asyncio
+from collections import deque
 import random
+import time
 
-from .codec import EEPROM, RAM, build_read, parse_mem, parse_num, read_reply
+from .codec import EEPROM, RAM, MAX_ADDRESS, build_read, parse_mem, parse_num, read_reply
 
 Image = dict[tuple[str, int], int]
 
@@ -14,6 +16,101 @@ class Emulator:
         self.allow_write = allow_write
         self.fail_rate = fail_rate
         self.stats = {"ok": 0, "timeout": 0}
+        self.poll_rules = []
+        self.poll_running = False
+        self.poll_revision = 0
+        self.poll_boot = random.getrandbits(32)
+        self.poll_sequence = 0
+        self.poll_history = deque(maxlen=32)
+        self.poll_next = 0
+        self.paused = False
+        self.started = time.monotonic()
+
+    def _poll_tick(self, now: float | None = None):
+        now = time.monotonic() if now is None else now
+        if not self.poll_running or self.paused or not self.poll_rules:
+            return
+        for offset in range(len(self.poll_rules)):
+            index = (self.poll_next + offset) % len(self.poll_rules)
+            rule = self.poll_rules[index]
+            if now < rule["due"]:
+                continue
+            addr, mem = rule["cursor"], rule["mem"]
+            if addr == rule["start"]:
+                rule["next_cycle"] = now + rule["interval_ms"] / 1000
+            rule["cursor"] = addr + 1 if addr < rule["end"] else rule["start"]
+            rule["due"] = now if addr < rule["end"] else rule["next_cycle"]
+            self.poll_next = (index + 1) % len(self.poll_rules)
+            self.poll_sequence += 1
+            self.poll_history.append({"seq": self.poll_sequence,
+                                      "uptime_ms": int((now - self.started) * 1000),
+                                      "revision": self.poll_revision, "mem": mem, "addr": addr,
+                                      "value": self.get(mem, addr)})
+            return
+
+    def _read_fields(self, mem, addr, value):
+        frame = build_read(mem, addr)
+        reply = read_reply(frame, value) if value is not None else b""
+        return (f"mem={mem} addr=0x{addr:03X} valid={int(value is not None)} "
+                f"value=0x{(value if value is not None else 0):02X} "
+                f"check={'ok' if value is not None else 'timeout'} "
+                f"tx={frame.hex().upper()} rx={reply.hex().upper()} attempts=1 ms=0")
+
+    def _poll_command(self, args):
+        action = args[0]
+        if action == "list" and len(args) == 1:
+            rules = [f"p mem={r['mem']} start=0x{r['start']:03X} end=0x{r['end']:03X} "
+                     f"interval_ms={r['interval_ms']}" for r in self.poll_rules]
+            return rules + [f"ok poll running={int(self.poll_running)} revision={self.poll_revision} "
+                            f"boot={self.poll_boot} seq={self.poll_sequence} capacity=32 history=32"]
+        if action in ("start", "stop", "clear") and len(args) == 1:
+            self.poll_running = action == "start"
+            if action == "clear":
+                self.poll_rules.clear()
+                self.poll_revision += 1
+            return [f"ok poll {action}"]
+        if action in ("set", "remove") and len(args) == (5 if action == "set" else 4):
+            mem, start, end = parse_mem(args[1]), parse_num(args[2]), parse_num(args[3])
+            if not 0 <= start <= end <= MAX_ADDRESS:
+                return ["err poll invalid range"]
+            matching = next((r for r in self.poll_rules if
+                             (r["mem"], r["start"], r["end"]) == (mem, start, end)), None)
+            if action == "remove":
+                if matching is None:
+                    return ["err poll remove"]
+                self.poll_rules.remove(matching)
+            else:
+                interval = parse_num(args[4])
+                if not 100 <= interval <= 86400000:
+                    return ["err poll invalid interval"]
+                if matching is None:
+                    if len(self.poll_rules) >= 32 or any(
+                            r["mem"] == mem and start <= r["end"] and end >= r["start"] for r in self.poll_rules):
+                        return ["err poll overlapping rule or plan full"]
+                    matching = {}
+                    self.poll_rules.append(matching)
+                now = time.monotonic()
+                matching.update(mem=mem, start=start, end=end, interval_ms=interval,
+                                cursor=start, due=now, next_cycle=now)
+            self.poll_revision += 1
+            return [f"ok poll {action}"]
+        if action == "events" and len(args) == 2:
+            since = parse_num(args[1])
+            if not 0 <= since <= 0xFFFFFFFF:
+                return ["err poll invalid sequence"]
+            oldest = self.poll_history[0]["seq"] if self.poll_history else self.poll_sequence + 1
+            lines = [f"s seq={s['seq']} uptime_ms={s['uptime_ms']} revision={s['revision']} " +
+                     self._read_fields(s["mem"], s["addr"], s["value"])
+                     for s in self.poll_history if s["seq"] > since]
+            return lines + [f"ok events boot={self.poll_boot} latest={self.poll_sequence} "
+                            f"oldest={oldest} lost={max(0, oldest - 1 - since)} "
+                            f"uptime_ms={int((time.monotonic() - self.started) * 1000)}"]
+        return ["err malformed poll command"]
+
+    async def _poll_loop(self):
+        while True:
+            self._poll_tick()
+            await asyncio.sleep(0.02)
 
     def get(self, mem: str, addr: int) -> int | None:
         if self.fail_rate and random.random() < self.fail_rate:
@@ -28,12 +125,15 @@ class Emulator:
             return []
         cmd, args = argv[0], argv[1:]
         try:
+            if cmd == "poll":
+                return self._poll_command(args)
             if cmd == "help":
                 return ["# emulator: r i d w x info pause resume monitor", "ok help"]
             if cmd == "info":
                 return [f"ok info queue=0 ok={self.stats['ok']} timeout={self.stats['timeout']} bad=0 dropped=0 "
-                        f"paused=0 echo=emulated write={int(self.allow_write)} monitor=0"]
+                        f"paused={int(self.paused)} echo=emulated write={int(self.allow_write)} monitor=0"]
             if cmd in ("pause", "resume"):
+                self.paused = cmd == "pause"
                 return [f"ok {cmd}"]
             if cmd == "monitor":
                 return [f"ok monitor {args[0]}"]
@@ -41,11 +141,7 @@ class Emulator:
                 mem, addr = parse_mem(args[0]), parse_num(args[1])
                 v = self.get(mem, addr)
                 if cmd == "i":
-                    frame = build_read(mem, addr)
-                    reply = read_reply(frame, v) if v is not None else b""
-                    return [f"ok i mem={mem} addr=0x{addr:03X} valid={int(v is not None)} "
-                            f"value=0x{(v if v is not None else 0):02X} check={'ok' if v is not None else 'timeout'} "
-                            f"tx={frame.hex().upper()} rx={reply.hex().upper()} attempts=1 ms=0"]
+                    return ["ok i " + self._read_fields(mem, addr, v)]
                 if v is None:
                     return [f"err r {mem} 0x{addr:03X} timeout"]
                 return [f"ok r {mem} 0x{addr:03X} 0x{v:02X} ok"]
@@ -89,8 +185,10 @@ class Emulator:
 
     async def serve(self, host: str = "127.0.0.1", port: int = 6638):
         server = await asyncio.start_server(self._client, host, port)
-        async with server:
-            await server.serve_forever()
+        async with asyncio.TaskGroup() as group:
+            group.create_task(self._poll_loop())
+            async with server:
+                await server.serve_forever()
 
     def start_in_thread(self, host: str = "127.0.0.1", port: int = 0) -> int:
         """Start in a daemon thread (tests). Returns the bound port."""
@@ -104,8 +202,10 @@ class Emulator:
                 server = await asyncio.start_server(self._client, host, port)
                 bound["port"] = server.sockets[0].getsockname()[1]
                 ready.set()
-                async with server:
-                    await server.serve_forever()
+                async with asyncio.TaskGroup() as group:
+                    group.create_task(self._poll_loop())
+                    async with server:
+                        await server.serve_forever()
 
             asyncio.run(main())
 

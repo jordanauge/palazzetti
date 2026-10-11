@@ -7,6 +7,10 @@ empirical: observe values over time, annotate what happens to the stove, correla
 controlled writes. The `plz` tool ([tools/plz](../tools/plz)) does this through the device's lab server. Every
 command is a one-shot, non-interactive CLI call, so a person or an AI agent can drive a session.
 
+For baseline preservation and targeted live investigations, start with
+[repeated backups and autonomous polling](acquisition.md). Plans can be edited
+without reflashing and read only selected bytes/ranges at independent periods.
+
 ## 1. Setup
 
 1. Flash the device with `lab_server` enabled (default in [palazzetti-base.yaml](../example/palazzetti-base.yaml)).
@@ -110,7 +114,8 @@ are known values that should appear in it. Examples:
 - Before an EEPROM campaign, dump the full EEPROM and keep it with the session so that it can be restored.
 - Generic Micronova on/off writes (RAM 0x21) are **not** valid on the Lara. Use only addresses confirmed in the
   profile.
-- `pause` stops the entity polling during scans that need the whole bus bandwidth (1200 baud is about 25 reads/s).
+- `pause` stops entity and plan scheduling while a lab connection is held. Default framing/gap
+  limits successful acquisition to roughly 15 reads/s before contention/retries.
 
 ## 7. Offline work
 

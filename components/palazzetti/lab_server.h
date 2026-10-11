@@ -31,6 +31,8 @@ class LabServer : public Component, public Parented<Palazzetti> {
   void close_client_();
   void handle_(char *line);
   void dump_next_();
+  void poll_command_(char **argv, int argc);
+  void send_read_(const char *prefix, Memory mem, uint16_t addr, const Result &res);
   void send_(const char *fmt, ...) __attribute__((format(printf, 2, 3)));
   void done_() { this->busy_ = false; }
 

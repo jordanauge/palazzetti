@@ -78,6 +78,45 @@ sensor:
 
 api:
   actions:
+    - action: set_poll_range
+      variables:
+        memory: int
+        start: int
+        end: int
+        interval_ms: int
+      then:
+        - lambda: |-
+            if ((memory != 0 && memory != 1) || start < 0 || end > 0x1FFF || start > end ||
+                interval_ms < 100 || interval_ms > 86400000 ||
+                !id(stove).polling_plan().set(memory == 0 ? micronova::Memory::RAM : micronova::Memory::EEPROM,
+                                             start, end, interval_ms, millis())) {
+              ESP_LOGW("palazzetti", "Polling rule rejected: invalid bounds, overlap or full plan");
+              id(lab_read_result).publish_state("error: polling rule rejected");
+              return;
+            }
+            id(lab_read_result).publish_state("Polling rule updated; use plz poll list to inspect plan");
+    - action: remove_poll_range
+      variables:
+        memory: int
+        start: int
+        end: int
+      then:
+        - lambda: |-
+            if ((memory != 0 && memory != 1) || start < 0 || end > 0x1FFF || start > end ||
+                !id(stove).polling_plan().remove(memory == 0 ? micronova::Memory::RAM : micronova::Memory::EEPROM,
+                                                start, end)) {
+              ESP_LOGW("palazzetti", "Polling removal rejected: invalid or missing range");
+              id(lab_read_result).publish_state("error: polling range not found or invalid");
+              return;
+            }
+            id(lab_read_result).publish_state("Polling rule removed");
+    - action: control_polling
+      variables:
+        enabled: bool
+      then:
+        - lambda: |-
+            id(stove).polling_plan().set_running(enabled);
+            id(lab_read_result).publish_state(enabled ? "Polling plan started" : "Polling plan stopped");
     - action: read_memory
       variables:
         memory: int

@@ -73,12 +73,51 @@ class LabClient:
     def inspect(self, mem: str, addr: int) -> dict:
         line = self._ok(f"i {parse_mem(mem)} {addr:#x}")[-1]
         fields = dict(token.split("=", 1) for token in line.split()[2:])
+        return self._read_result(fields)
+
+    @staticmethod
+    def _read_result(fields: dict[str, str]) -> dict:
         return {
             "mem": fields["mem"], "addr": int(fields["addr"], 0),
             "valid": fields["valid"] == "1", "value": int(fields["value"], 0) if fields["valid"] == "1" else None,
             "check": fields["check"], "tx": fields["tx"], "rx": fields["rx"],
             "attempts": int(fields["attempts"]), "elapsed_ms": int(fields["ms"]),
         }
+
+    def poll_list(self) -> dict:
+        lines = self._ok("poll list")
+        status = {key: int(value) for key, value in
+                  (token.split("=", 1) for token in lines[-1].split()[2:])}
+        rules = []
+        for line in lines[:-1]:
+            if line.startswith("p "):
+                fields = dict(token.split("=", 1) for token in line.split()[1:])
+                rules.append({"mem": fields["mem"], "start": int(fields["start"], 0),
+                              "end": int(fields["end"], 0), "interval_ms": int(fields["interval_ms"])})
+        return {**status, "rules": rules}
+
+    def poll_set(self, mem: str, start: int, end: int, interval_ms: int):
+        self._ok(f"poll set {parse_mem(mem)} {start:#x} {end:#x} {interval_ms}")
+
+    def poll_remove(self, mem: str, start: int, end: int):
+        self._ok(f"poll remove {parse_mem(mem)} {start:#x} {end:#x}")
+
+    def poll_control(self, action: str):
+        if action not in ("start", "stop", "clear"):
+            raise ValueError("poll control must be start, stop or clear")
+        self._ok(f"poll {action}")
+
+    def poll_events(self, after: int = 0) -> dict:
+        lines = self._ok(f"poll events {after}")
+        status = {key: int(value) for key, value in
+                  (token.split("=", 1) for token in lines[-1].split()[2:])}
+        results = []
+        for line in lines[:-1]:
+            if line.startswith("s "):
+                fields = dict(token.split("=", 1) for token in line.split()[1:])
+                results.append({**self._read_result(fields), "seq": int(fields["seq"]),
+                                "uptime_ms": int(fields["uptime_ms"]), "revision": int(fields["revision"])})
+        return {**status, "samples": results}
 
     def write(self, mem: str, addr: int, value: int) -> str:
         return self._ok(f"w {parse_mem(mem)} {addr:#x} {value:#x}")[-1]

@@ -1,6 +1,7 @@
 // Host test of the Micronova codec: make test-cpp
 #include "micronova.h"
 #include "write_policy.h"
+#include "polling_plan.h"
 
 #include <cstdio>
 
@@ -68,6 +69,39 @@ int main() {
   CHECK(!policy.allows(Memory::RAM, 0x65, 3));
   policy.set_enabled(true);
   CHECK(!policy.allows(Memory::EEPROM, 78, 26));
+
+  esphome::palazzetti::PollingPlan plan;
+  CHECK(!plan.running() && plan.rules().empty());
+  CHECK(!plan.set(Memory::RAM, 5, 4, 100, 0));
+  CHECK(!plan.set(Memory::RAM, 0, 0x2000, 100, 0));
+  CHECK(!plan.set(Memory::RAM, 0, 0, 99, 0));
+  CHECK(plan.set(Memory::RAM, 0x40, 0x42, 1000, 0));
+  CHECK(!plan.set(Memory::RAM, 0x41, 0x43, 500, 0));
+  CHECK(plan.set(Memory::RAM, 0xF9, 0xF9, 100, 0));
+  Memory mem;
+  uint16_t addr;
+  CHECK(!plan.next(0, mem, addr));
+  plan.set_running(true);
+  CHECK(plan.next(0, mem, addr) && addr == 0x40);
+  CHECK(plan.next(0, mem, addr) && addr == 0xF9);
+  CHECK(plan.next(0, mem, addr) && addr == 0x41);
+  CHECK(plan.next(0, mem, addr) && addr == 0x42);
+  CHECK(!plan.next(99, mem, addr));
+  CHECK(plan.next(100, mem, addr) && addr == 0xF9);
+  CHECK(plan.next(1000, mem, addr) && addr == 0x40);
+  CHECK(plan.remove(Memory::RAM, 0xF9, 0xF9));
+  CHECK(!plan.remove(Memory::RAM, 0xF9, 0xF9));
+  plan.clear();
+  CHECK(plan.rules().empty());
+  CHECK(plan.set(Memory::EEPROM, 0, 0, 100, UINT32_MAX - 50));
+  CHECK(plan.next(UINT32_MAX - 50, mem, addr) && mem == Memory::EEPROM);
+  CHECK(!plan.next(48, mem, addr));
+  CHECK(plan.next(49, mem, addr));
+  plan.clear();
+  for (uint16_t i = 0; i < plan.CAPACITY; i++)
+    CHECK(plan.set(Memory::RAM, i, i, 100, 0));
+  CHECK(!plan.set(Memory::RAM, 100, 100, 100, 0));
+  CHECK(plan.set(Memory::RAM, 0, 0, 200, 0));
 
   std::printf(failures ? "%d failure(s)\n" : "all micronova tests passed\n", failures);
   return failures ? 1 : 0;

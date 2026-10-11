@@ -60,6 +60,8 @@ secrets.yaml
 
 # Lab sessions and Python
 sessions/
+dumps/
+backups/
 .venv/
 __pycache__/
 .pytest_cache/

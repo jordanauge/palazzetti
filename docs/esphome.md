@@ -18,6 +18,7 @@ interactive commands from `plz` never collide with entity polling.
 |---|---|
 | [micronova.h](../components/palazzetti/micronova.h) | frame building and reply checks, pure C++ (host-tested) |
 | [write_policy.h](../components/palazzetti/write_policy.h) | central address/value allowlist and volatile RAM/EEPROM permission gates |
+| [polling_plan.h](../components/palazzetti/polling_plan.h) | bounded volatile range scheduler; shared hub keeps checked plan results |
 | [palazzetti.h](../components/palazzetti/palazzetti.h), [palazzetti.cpp](../components/palazzetti/palazzetti.cpp) | hub: queue, UART state machine, echo handling, retries, statistics |
 | [bus_entity.h](../components/palazzetti/bus_entity.h), [bus_entity.cpp](../components/palazzetti/bus_entity.cpp) | sensor / text sensor / number / switch bound to one address |
 | [lab_server.h](../components/palazzetti/lab_server.h), [lab_server.cpp](../components/palazzetti/lab_server.cpp) | TCP line protocol for the [lab tool](reverse-engineering.md) |
@@ -150,6 +151,14 @@ and publishes **Last API memory read**, including validity, reply length, checks
 attempt count and final-attempt latency. Invalid arguments and full queues publish errors.
 For machine-readable complete byte evidence and session logging, use `plz inspect`;
 this text entity only retains the latest action result.
+
+### 3.6 Autonomous polling
+
+The hub has a volatile 32-range read plan, stopped/empty at boot, plus a bounded
+32-result drain buffer. The lab API and native actions edit it without reflashing.
+It continues between client connections but never writes to the stove or ESP flash.
+See [acquisition.md](acquisition.md) for periods, fairness, runtime capacity,
+gap/reboot handling, CLI recording and repeated baseline backups.
 
 ## 4. Tests
 

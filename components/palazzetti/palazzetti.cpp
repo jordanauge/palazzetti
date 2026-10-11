@@ -4,6 +4,7 @@
 
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
+#include "esphome/core/helpers.h"
 
 namespace esphome::palazzetti {
 
@@ -12,6 +13,7 @@ static const char *const TAG = "palazzetti";
 static const char *mem_str(Memory m) { return m == Memory::EEPROM ? "eeprom" : "ram"; }
 
 void Palazzetti::setup() {
+  this->boot_id_ = random_uint32();
   uint8_t b;
   while (this->available())
     this->read_byte(&b);
@@ -114,12 +116,33 @@ void Palazzetti::notify_(Memory mem, uint16_t addr, uint8_t value) {
 
 void Palazzetti::loop() {
   uint32_t now = millis();
+  this->poll_plan_(now);
   if (this->state_ == State::IDLE) {
     if (!this->queue_.empty() && now - this->last_activity_ >= this->frame_gap_)
       this->send_(now);
     return;
   }
   this->receive_(now);
+}
+
+void Palazzetti::poll_plan_(uint32_t now) {
+  if (this->plan_pending_ || this->polling_paused_ || this->queue_.size() >= this->max_queue_)
+    return;
+  Memory mem;
+  uint16_t addr;
+  if (!this->polling_plan_.next(now, mem, addr))
+    return;
+  uint32_t revision = this->polling_plan_.revision();
+  this->plan_pending_ = true;
+  if (!this->read(mem, addr, [this, mem, addr, revision](const Result &res) {
+        this->plan_pending_ = false;
+        if (this->poll_samples_.size() >= POLL_HISTORY)
+          this->poll_samples_.pop_front();
+        this->poll_samples_.push_back({++this->poll_sequence_, millis(), revision, mem, addr, res});
+      })) {
+    this->plan_pending_ = false;
+    ESP_LOGW(TAG, "Scheduled read rejected: queue full");
+  }
 }
 
 void Palazzetti::send_(uint32_t now) {

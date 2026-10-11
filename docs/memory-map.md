@@ -28,8 +28,8 @@ Profile `palazzetti-ecofire-lara`.
 | 0x02 | 2 | Unknown, ignition related |  |  |  | r | hypothesis | unverified | notes-2020, dump-2020 | 255 off, 12–68 during ignition, 68 while working. |
 | 0x06 | 6 | Transition-related byte 06 |  |  |  | r | unknown | unverified | notes-2020 | Historical readings mostly 10, with 0 near on/off events. Meaning and causal role unknown. |
 | 0x09 | 9 | Countdown after switch off |  |  |  | r | observed | unverified | notes-2020, dump-2020 | 0 while running, counts 10→0 during final cleaning, 255 when off. |
-| 0x0D | 13 | Generic Micronova auger time |  |  |  | r | unknown | unverified | dump-2020 | Constant 232 for 47 h, so not a live auger time here. Likely the board/model code read by the Connection Box (see palazzetti-connbox). |
-| 0x0D | 13 | Board / model code candidate |  |  |  | r | hypothesis | unverified | dump-2020, connbox-2020 | Constant 232 (0xE8) in the Lara capture. Connection Box notes read this address to select a model branch; the Lara branch and board identity remain unverified. |
+| 0x0D | 13 | Generic Micronova auger time |  |  |  | r | unknown | unverified | dump-2020 | Constant 232 for 47 h, so no live auger-time variation observed here. Meaning unknown; the supplied bridge reads 6E for dispatch, not 0D. |
+| 0x0D | 13 | Unidentified constant 0D (model claim refuted) |  |  |  | r | unknown | unverified | dump-2020, connbox-69055a28 | Constant 232 (0xE8) in the Lara capture. Retained field ID for compatibility; not a board identifier or confirmed feeder duration. Lara branch and byte meaning remain unverified. |
 | 0x21 | 33 | Generic Micronova stove state |  |  |  | r | refuted | unverified | dump-2020 | Constant 5 during the whole dump, including on/off cycles. Do not use the generic on/off writes here. |
 | 0x23–0x2F | 35 | Constant block 43 20 10 60 20 80 159 145 145 145 145 11 5 |  |  |  | r | observed | unverified | notes-2020 | Historical constant readings only; not defaults or a verified parameter structure. Individual meanings remain unknown. |
 | 0x30 | 48 | 0–59 counter (one cycle per hour), frozen when off |  |  |  | r | observed | unverified | notes-2020 |  |
@@ -107,7 +107,7 @@ Source credit distinguishes address, representation and interpretation. A third-
 - `constants_0x23`: **own / static_value**; supports address; `notes-2020` — Thirteen historical constant readings are recorded at 23–2F; constant does not mean default or identify the parameter.
 - `constants_0x23`: **own / adjacency**; supports meaning, layout; `service-menu` — Recorded service values ST OFF SC=43, ST STEP SC=20, DASS MOD P=10, D CICLO FC=10, ST BLACKOUT=60, D ALL GEN=20, T ALL PELL=80 suggest testing 23–28 as an ordered group; a possible times-six encoding at 26 and duplicate small values make this unproven. No member assigned a setting name.
 - `board_model`: **own / static_value**; supports address; `dump-2020` — RAM 0D is constant E8 in the historical capture; constancy alone does not identify a board.
-- `board_model`: **own / disassembly**; supports meaning; `connbox-2020` — Historical Connection Box notes read RAM 0D for model dispatch; the Lara model branch is not verified.
+- `board_model`: **own / disassembly**; supports meaning; `connbox-69055a28` — Corrects the old model-dispatch claim: this bridge selects branches from RAM 6E and reads RAM 0D as FEEDER raw/10 on its layouts. Neither interpretation establishes the Lara byte's meaning.
 - `chrono_programs`: **own / panel_change**; supports address; `notes-2020` — Notes record EEPROM 62 and 63 changing during program editing; which display value each byte represents is unresolved.
 - `chrono_programs`: **own / adjacency**; supports layout; `notes-2020` — Listed program starts suggest triplets beginning at decimal 59. Notes contain gaps/typos and the tentative end overlaps power at decimal 76; not a validated structure.
 - `chrono_programs`: **external / source_table**; supports encoding; `eni23-representation` — Another board stores schedule times in ten-minute units. Candidate representation only; Lara triplet times are not decoded.
@@ -220,6 +220,7 @@ Sources:
 - `forum-representation`: Third-party parameter formulas: https://stufapellet.forumcommunity.net/?t=53061907 (historical table retained in private notes/2020-palazzetti-repo/NOTES); not Lara offsets or safe ranges
 - `eni23-representation`: L'Asolana Marina mapping: https://github.com/eni23/micronova-controller (README reviewed 2026-10-11); decimal live clock versus BCD stored clock and 10-minute schedule units are candidates only for Lara
 - `connbox-2020`: Connection Box disassembly notes (2020), private repo notes/2020-palazzetti-repo/COMMANDS; model branch not verified on Lara
+- `connbox-69055a28`: Own static analysis of private plzbridge MD5 69055a2889734015f2bc6b1b6db4c2d6 (2026-10-11), functions 40D7F8 and 40D98C; corrects historical model-dispatch interpretation, not Lara mapping evidence
 - `notes-2020`: Manual observations (2020), private repo notes/2020-palazzetti-repo
 - `dump-2020`: RAM capture 2020-02-10..12, private repo dumps/2020-02-10-ram
 - `dump-2020-02-08`: Timestamped RAM polling in private reverse repo legacy/2020-backup/out2 (2020-02-08, 1.76 h); successful callbacks only, raw checksums unavailable

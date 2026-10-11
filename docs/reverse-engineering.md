@@ -175,6 +175,12 @@ Use the following evidence chain before promoting a candidate:
    model bias, signed adjustment, BCD, ten-minute schedule units, bit fields or
    multi-byte endianness. Record the source for each suggestion. Avoid arbitrary
    conversions chosen merely to make one number match.
+   The [identified Connection Box build](connection-box.md#2-what-we-already-know-from-the-firmware)
+   supplies specific candidate encodings (raw/10 seconds, 10*raw+250 RPM,
+   5*raw+60 volts, temperature offsets and big-endian adjacent bytes).
+   Its 47-byte service cache and direct `GET PARM` index are different interfaces,
+   not Lara EEPROM addresses. RAM 6E is a passive comparison target only; RAM
+   0D is no longer considered a model-selection byte based on the old note.
 4. Match multiple distinct paired panel readings if safe observations exist.
    Duplicate zeros, common values and a single default/range match produce many
    candidates; retain them all with their ambiguity.

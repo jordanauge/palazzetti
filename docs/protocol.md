@@ -98,10 +98,16 @@ documents Lara only; other-board layouts stay in [reference notes](reference-map
 Some boards (e.g. Micronova P937 variants) use a different water temperature address or BCD-encoded clock
 registers; the component's `encoding:` option (`uint8`, `int8`, `bcd`, `uint16_be/le`, `int16_be/le`) covers these.
 
-The Palazzetti Connection Box firmware handles this explicitly: it first reads a **board/model code at RAM 0x0D**,
-then uses one of several address sets (e.g. target temperature at RAM 0x36 or 0xA0, power at 0x37/0x64 or
-0x97/0x34). See [connection-box.md](connection-box.md) and the [Connection Box extraction](reference-mappings/palazzetti-connbox.yaml). On the Lara, RAM 0x0D
-is constant 232.
+The inspected Palazzetti Connection Box build selects a Micronova branch using
+**RAM 0x6E**, then uses several address sets (e.g. target temperature at RAM
+0x36 or 0xA0, power at 0x37/0x64 or 0x97/0x34). Its RAM 0x0D is a scaled
+`FEEDER` reading, not model identification. This corrects the earlier 2020 note.
+See [connection-box.md](connection-box.md) and the
+[reference extraction](reference-mappings/palazzetti-connbox.yaml). Lara's constant
+232 at RAM 0x0D remains unidentified; none of these branch layouts is verified
+for Lara. The bridge's 16-bit reads are big-endian and consist of two non-atomic
+byte reads; this is an encoding hypothesis when searching Lara storage, not proof
+that Lara multi-byte parameters use the same order.
 
 Newer Palazzetti stoves (and Jotul, Godin, TurboFonte…) use a **Fumis** board instead: 38400 baud, 11-byte
 frames and 16-bit addresses (`0x2000`–`0x2100`). It is a different protocol, out of scope for this component;

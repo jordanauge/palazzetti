@@ -122,7 +122,9 @@ def test_recovered_members_keep_addresses_conversions_and_evidence():
     by_id = {f["id"]: f for f in lara["fields"]}
     assert by_id["power_setting_ram_aux"]["addr"] == 0x47
     assert by_id["fan_setting_ram_aux"]["addr"] == 0x46
-    assert by_id["board_model"]["status"] == "hypothesis"
+    assert by_id["board_model"]["status"] == "unknown"
+    assert by_id["board_model"]["addr"] == 0x0D
+    assert "connbox-69055a28" in by_id["board_model"]["sources"]
     assert by_id["midnight_0x61"]["status"] == "unknown"
     constants = by_id["constants_0x23"]
     assert len(constants["members"]) == 13

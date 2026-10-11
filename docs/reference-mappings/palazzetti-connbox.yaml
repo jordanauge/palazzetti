@@ -1,25 +1,32 @@
 # Reference extraction only; not a maintained or deployable Lara map.
-# Addresses used by the Palazzetti Connection Box firmware, from 2020 disassembly notes
-# (private repo notes/2020-palazzetti-repo/COMMANDS). The box reads a model/board code first and
-# then picks address sets per model, which is why the same parameter can sit at different addresses.
-# Notes were terse: entries are `reported` until checked against a live box or the binary.
+# Derived facts from the supplied bridge; none establishes Lara applicability.
 reference_only: true
 profile: palazzetti-connbox
-title: Palazzetti Connection Box (firmware notes, 2020)
+title: Palazzetti Connection Box (69055a28 build reference)
 sources:
   connbox-2020: Connection Box firmware disassembly notes (2020), private repo notes/2020-palazzetti-repo/COMMANDS
+  connbox-69055a28: "Own static analysis (2026-10-11), private plzbridge MD5 69055a2889734015f2bc6b1b6db4c2d6, SHA256 4fedc1bc89e47c1448dec277e6b9d5f2c44e6b5265aa7c86ea0818c4475b7562; see ../connection-box.md for public derived facts"
 fields:
   - id: board_model
     category: Identification & constants
     mem: ram
-    addr: 0x0D
-    name: Board / model code (selects the address set)
+    addr: 0x6E
+    name: Micronova branch selector (not verified Lara model)
     status: reported
-    sources: [connbox-2020]
+    sources: [connbox-69055a28]
+    values: {1: type 12, 2: type 13, 3: type 14}
     notes: >-
-      Read first by `GET ALLS`. One code is noted as "0xB model" (alternative addresses below).
-      On the Ecofire Lara it is constant 232 (0xE8) over 47 h, consistent with a model code
-      rather than the generic Micronova auger time.
+      Function 40D7F8. Other successfully read values select type 11 (0B).
+      Corrects historical RAM 0D claim; fallback is not proof of model compatibility.
+  - id: feeder
+    category: Combustion & fans
+    mem: ram
+    addr: 0x0D
+    name: FEEDER (bridge layouts)
+    scale: 0.1
+    status: reported
+    sources: [connbox-69055a28]
+    notes: Function 40D98C divides by 10; GET ALLS emits FEEDER. Lara constant E8 is not identified by this formula.
   - id: status
     category: State & phases
     mem: ram
@@ -27,37 +34,37 @@ fields:
     name: Stove state (target of SET STAT)
     access: rw
     status: reported
-    sources: [connbox-2020]
-    notes: Written by `SET STAT`. Constant 5 on the Lara, so the Lara likely uses another model branch.
+    sources: [connbox-69055a28]
+    notes: Function 40D910 reads this byte. ON/OFF also writes other bytes first. Constant 5 on Lara refutes straightforward state mapping.
   - id: power_level
     category: Combustion & fans
     mem: ram
     addr: 0x37
-    name: Power level (GET ALLS / GET POWR, model A)
+    name: POWER (type 11)
     status: reported
-    sources: [connbox-2020]
-    notes: Noted with 0x64 for one model branch. On the Lara 0x37 behaves like the fumes extractor speed.
+    sources: [connbox-69055a28]
+    notes: Function 40D98C. On Lara 0x37 behaves like fumes extractor speed, not this meaning.
   - id: power_level_aux
     category: Combustion & fans
     mem: ram
     addr: 0x64
-    name: Power (GET ALLS, model A, companion of 0x37)
+    name: RPOWER (type 11)
     status: reported
-    sources: [connbox-2020]
+    sources: [connbox-69055a28]
   - id: power_level_b
     category: Combustion & fans
     mem: ram
     addr: 0x97
-    name: Power (GET ALLS, model B)
+    name: POWER (types 12-14)
     status: reported
-    sources: [connbox-2020]
+    sources: [connbox-69055a28]
   - id: power_level_b_aux
     category: Combustion & fans
     mem: ram
     addr: 0x34
-    name: Power (GET ALLS, model B, companion of 0x97)
+    name: RPOWER (types 12-14)
     status: reported
-    sources: [connbox-2020]
+    sources: [connbox-69055a28]
     notes: Same address as the generic Micronova power level.
   - id: target_temperature
     category: User settings
@@ -66,8 +73,9 @@ fields:
     name: Target temperature (GET SETP, "0xB model")
     unit: °C
     status: reported
-    sources: [connbox-2020]
-    notes: The note mentions bit shifts around the read (`srl`/`sra`), so the encoding may not be plain.
+    sources: [connbox-69055a28]
+    scale: 0.5
+    notes: Function 40DB74 uses integer raw/2, truncating odd values. Scale summarizes representation, not exact fractional output.
   - id: target_temperature_alt
     category: User settings
     mem: ram
@@ -75,14 +83,14 @@ fields:
     name: Target temperature (GET SETP, other models)
     unit: °C
     status: reported
-    sources: [connbox-2020]
+    sources: [connbox-69055a28]
   - id: parameters
     category: Service parameters
     mem: eeprom
-    addr: 0x28
-    count: 32
-    name: Technical parameters (GET PARM / SET PARM)
-    access: rw
+    addr: 0x00
+    count: 47
+    name: Cached technical parameter bytes (EXT PARL)
+    access: r
     status: reported
-    sources: [connbox-2020]
-    notes: Start address from the notes; length unknown (32 is a placeholder). Values above 201 noted as invalid.
+    sources: [connbox-69055a28]
+    notes: Functions 40E054 and 401C80. Cache indices 0..46 loaded from EEPROM 00..2E; not storage capacity. GET PARM separately accepts 1..200 and reads address=index, without base28. PHP display row n uses cache index n-1.

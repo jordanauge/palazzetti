@@ -24,7 +24,7 @@ Connection Box hides the difference behind one HTTP API.
 | Frames | read: 2 bytes out, 2 back; write: 4 bytes out ([protocol.md](protocol.md#2-frames)) | fixed 11-byte frames |
 | Addresses | 8 bits used (0x00–0xFF) in two memories, RAM and EEPROM | 16 bits, one space (`0x2000`–`0x2100`…, e.g. status at `0x201C`, serial number from `0x2100`) |
 | Memory maps | per board, see [memory-map.md](memory-map.md) | fixed per firmware, see Domochip's library |
-| Connection Box | supported (Micronova code path, model code at RAM 0x0D) | supported |
+| Connection Box | Micronova code path; inspected build selects branches using RAM 0x6E, Lara layout unverified | supported |
 | Open projects | ESPHome `micronova`, philibertc, eni23… | Domochip/WPalaControl, Domochip/Palazzetti |
 | **This repository** | **implemented** | **not implemented** |
 
@@ -42,7 +42,7 @@ We have not checked it on a Fumis stove.
 | Spare-part listing: *Ecofire Mini digital board (00 252010 1)*, Palazzetti ref. 895705170, "for units dated 10/2003 to 01/2008", plus its *microchip* (002520101, ref. 895705120) | the board fitted to the Ecofire Mini / Lara of that period; the microchip is the programmed controller, sold separately | [palazzetti-ecofire-lara](https://github.com/jordanauge/palazzetti-ecofire-lara) `spare-parts/README.md`, positions 97–98 and 114 |
 | 2020 capture: 46.9 h of sequential scans of all 256 RAM addresses, sent as 2-byte Micronova requests at 1200 8N2; accepted replies and failed reads must be distinguished (legacy checksum caveats apply) | the board answers the Micronova protocol; this does not mean every read succeeded | private repo `dumps/2020-02-10-ram/`, [reverse-engineering.md](reverse-engineering.md) |
 | The state register (RAM 0xF9) follows ignition, working and cleaning phases in that capture | the replies are live stove data, not noise | [memory-map.md](memory-map.md) |
-| RAM 0x0D is constant 232 | likely the model code the Connection Box reads on its Micronova path | [connection-box.md](connection-box.md) |
+| RAM 0x0D is constant 232 | unidentified constant; inspected bridge uses 6E for dispatch and 0D for a feeder reading on other layouts | [connection-box.md](connection-box.md) |
 
 Still **to verify**:
 
@@ -59,7 +59,8 @@ Everything in the code targets the **Micronova protocol**:
 - [micronova.h](../components/palazzetti/micronova.h) builds and checks the frames. The component's
   configuration check rejects any UART other than 1200 baud with 2 stop bits.
 - [codec.py](../tools/plz/codec.py) is the same codec for the `plz` tool and the emulator.
-- The [maps](../maps) are Micronova RAM/EEPROM layouts: generic ones and the Ecofire Lara profile.
+- The [maps](../maps) contain only the maintained Ecofire Lara profile; other layouts
+  are [non-deployable references](reference-mappings/README.md).
 - The [adapter](adapter.md) and [hardware](hardware.md) pages describe the Micronova single-wire bus.
 
 **Fumis is not implemented.** Supporting it would need a separate frame layer: 38400 baud, 11-byte frames and
@@ -68,7 +69,7 @@ test it. Until then, for a Fumis stove use [WPalaControl](https://github.com/Dom
 Connection Box with the Home Assistant `palazzetti` integration.
 
 The **Connection Box** is a layer above both families. [connection-box.md](connection-box.md) and the
-`palazzetti-connbox` profile cover its Micronova side only.
+`palazzetti-connbox` reference extraction cover its Micronova side only.
 
 ## 4. Which board does my stove have?
 

@@ -12,6 +12,21 @@ def reference(name):
     return maps.load(str(REFERENCES / f"{name}.yaml"))
 
 
+def test_bridge_reference_corrections_do_not_promote_lara_addresses():
+    bridge = {field["id"]: field for field in reference("palazzetti-connbox")["fields"]}
+    assert bridge["board_model"]["addr"] == 0x6E
+    assert bridge["feeder"]["addr"] == 0x0D
+    assert bridge["feeder"]["scale"] == 0.1
+    assert bridge["parameters"]["addr"] == 0
+    assert bridge["parameters"]["count"] == 47
+    lara = {field["id"]: field for field in maps.load("palazzetti-ecofire-lara")["fields"]}
+    assert lara["board_model"]["addr"] == 0x0D
+    assert lara["board_model"]["status"] == "unknown"
+    assert lara["power_state"]["addr"] == 0xF9
+    deployed = json.loads(maps.gen_device_map("palazzetti-ecofire-lara"))["maps"][0]["fields"]
+    assert not any(field["id"] in ("board_model", "feeder", "parameters") for field in deployed)
+
+
 def test_device_map_is_bounded_and_read_only():
     text = maps.gen_device_map("palazzetti-ecofire-lara")
     assert len(text.encode()) <= 8192

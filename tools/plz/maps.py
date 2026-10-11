@@ -1,6 +1,8 @@
 """Memory map profiles (maps/*.yaml): loading, documentation and ESPHome generation."""
 
 from collections import Counter
+import json
+import math
 from pathlib import Path
 
 import yaml
@@ -216,6 +218,60 @@ def render_markdown(names: list[str]) -> str:
 
 def _q(s: str) -> str:
     return '"' + str(s).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def gen_device_map(name: str, field_ids: list[str] | None = None, interval_ms: int = 15000) -> str:
+    """Compact read-only dashboard JSON, independent of compiled ESPHome entities."""
+    from .memory_html import region
+
+    if type(interval_ms) is not int or not 100 <= interval_ms <= 86400000:
+        raise ValueError("interval_ms must be 100..86400000")
+    profile = load(name)
+    fields = []
+
+    def leaves(field, prefix=""):
+        identity = prefix + field["id"]
+        if field["members"]:
+            for child in field["members"]:
+                yield from leaves(child, identity + ".")
+        else:
+            yield {**field, "id": identity}
+
+    available = [leaf for field in profile["fields"] for leaf in leaves(region(field))]
+    if field_ids:
+        missing = set(field_ids) - {field["id"] for field in available}
+        if missing:
+            raise ValueError(f"Unknown or unlocated fields: {', '.join(sorted(missing))}")
+    for field in available:
+        if field_ids and field["id"] not in field_ids:
+            continue
+        if not field_ids and field["status"] not in ("observed", "confirmed"):
+            continue
+        if field.get("encoding", "uint8") not in (
+            "uint8", "int8", "bcd", "uint16_le", "uint16_be", "int16_le", "int16_be"
+        ):
+            raise ValueError(f"Unsupported device encoding: {field['id']}")
+        if field["width"] not in (1, 2) or (field["width"] == 2 and "16" not in field.get("encoding", "")):
+            if field_ids:
+                raise ValueError(f"Field needs scalar members or a supported encoding: {field['id']}")
+            continue
+        if not all(type(field.get(key, default)) in (int, float) and
+                   math.isfinite(field.get(key, default)) for key, default in (("scale", 1), ("offset", 0))):
+            raise ValueError(f"Invalid numeric conversion: {field['id']}")
+        fields.append({key: field[key] for key in (
+            "id", "name", "mem", "addr", "width", "encoding", "scale", "offset", "unit", "values", "status"
+        ) if key in field})
+    if not fields or len(fields) > 48:
+        raise ValueError("Select 1..48 located scalar fields with --field")
+    if len({(field["mem"], field["addr"] + offset) for field in fields for offset in range(field["width"])}) > 64:
+        raise ValueError("Selected fields exceed 64 unique bytes")
+    text = json.dumps({"format": 1, "maps": [{
+        "id": profile["profile"], "name": profile.get("title", profile["profile"]),
+        "interval_ms": interval_ms, "fields": fields,
+    }]}, ensure_ascii=True, separators=(",", ":"), allow_nan=False) + "\n"
+    if len(text.encode()) > 8192:
+        raise ValueError("Map exceeds 8192 bytes; select fewer fields with --field")
+    return text
 
 
 def gen_esphome(name: str, statuses=("confirmed", "observed", "hypothesis"), hub: str = "stove") -> str:

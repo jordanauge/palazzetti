@@ -59,15 +59,24 @@ bool Palazzetti::enqueue_(Request &&r, bool front) {
 void Palazzetti::poll(Memory mem, uint16_t addr) {
   if (this->polling_paused_)
     return;
-  for (auto &q : this->queue_)
-    if (q.polling && q.mem == mem && q.addr == addr)
-      return;
+  if (this->read_pending(mem, addr))
+    return;
   Request r;
   r.mem = mem;
   r.addr = addr;
   r.polling = true;
   r.frame_len = micronova::build_read(r.frame, mem, addr);
   this->enqueue_(std::move(r), false);
+}
+
+bool Palazzetti::read_pending(Memory mem, uint16_t addr) const {
+  if (this->state_ == State::WAIT && this->current_.kind == Kind::READ &&
+      this->current_.mem == mem && this->current_.addr == addr)
+    return true;
+  for (const auto &request : this->queue_)
+    if (request.kind == Kind::READ && request.mem == mem && request.addr == addr)
+      return true;
+  return false;
 }
 
 bool Palazzetti::read(Memory mem, uint16_t addr, Callback cb) {
@@ -260,6 +269,11 @@ void Palazzetti::finish_(bool timeout, uint32_t now) {
     ESP_LOGW(TAG, "%s on %s 0x%03X: %02X %02X", micronova::reply_check_str(res.check), mem_str(req.mem), req.addr,
              res.reply[0], res.reply[1]);
   }
+  if (req.kind == Kind::READ)
+    this->read_cache_.put(req.mem, req.addr, now, res.ok, res.value,
+                         res.ok ? nullptr : (res.timeout ? "timeout" : micronova::reply_check_str(res.check)));
+  else if (req.kind == Kind::WRITE)
+    this->read_cache_.put(req.mem, req.addr, now, false, 0, "write-invalidated");
   if (this->trace_)
     this->trace_(req, res);
   if (req.cb)

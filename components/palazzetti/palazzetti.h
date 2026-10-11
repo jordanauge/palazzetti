@@ -10,6 +10,7 @@
 #include "micronova.h"
 #include "write_policy.h"
 #include "polling_plan.h"
+#include "read_cache.h"
 
 namespace esphome::palazzetti {
 
@@ -88,6 +89,8 @@ class Palazzetti : public Component, public uart::UARTDevice {
   // Polling read issued by entities: deduplicated, dropped while polling is paused.
   void poll(Memory mem, uint16_t addr);
   bool read(Memory mem, uint16_t addr, Callback cb);
+  bool read_pending(Memory mem, uint16_t addr) const;
+  const ReadCache &read_cache() const { return this->read_cache_; }
   bool write(Memory mem, uint16_t addr, uint8_t value, Callback cb = nullptr);
   bool raw(const uint8_t *frame, size_t len, size_t reply_len, Callback cb);
 
@@ -126,6 +129,7 @@ class Palazzetti : public Component, public uart::UARTDevice {
   uint8_t max_queue_{48};
   bool polling_paused_{false};
   WritePolicy write_policy_;
+  ReadCache read_cache_;
   PollingPlan polling_plan_;
   std::deque<PollSample> poll_samples_;
   bool plan_pending_{false};

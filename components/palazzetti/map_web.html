@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stove memory dashboard</title>
+<style>
+body{max-width:1100px;margin:auto;padding:20px;background:#101722;color:#e6edf3;font:15px system-ui}
+button,input,select{padding:8px;background:#1b2636;color:inherit;border:1px solid #536277;border-radius:4px}
+a{color:#8ac7ff}.controls{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+table{width:100%;border-collapse:collapse}th,td{padding:10px;text-align:left;border-bottom:1px solid #536277}
+.error{color:#ff9494}.muted{color:#a8b5c5}input[type=number]{width:110px}.table{overflow:auto}
+</style>
+<h1>Stove memory dashboard</h1>
+<p><a href="/">ESPHome entities</a> · <a href="/memory/map">Stored JSON maps</a></p>
+<p>Read-only. Uploaded maps describe display fields, not write permissions. No stove connection means
+unavailable values, never zeroes. Capture age is per byte; multi-byte values are not atomic.</p>
+<div class="controls">
+<input id="file" type="file" accept=".json,application/json">
+<button id="upload">Upload maps</button>
+<button id="initialize">Initialize map storage</button>
+<button id="refresh">Refresh status</button>
+</div>
+<p id="message" role="status"></p><p id="status" class="muted"></p>
+<label>Display map <select id="map"></select></label>
+<div class="table"><table><thead><tr><th>Parameter</th><th>Memory</th><th>Decoded value</th>
+<th>Evidence / freshness</th><th>Polling ms</th></tr></thead><tbody id="fields"></tbody></table></div>
+<script>
+"use strict";
+const el=id=>document.getElementById(id);
+let documentMap=null, cache=null, timer=null, busy=false;
+const cell=(row,value)=>{const td=document.createElement("td");td.textContent=value;row.append(td);return td;};
+function message(value,error=false){el("message").textContent=value;el("message").className=error?"error":"";}
+async function request(url,options={}){
+  const response=await fetch(url,{...options,cache:"no-store"});
+  if(!response.ok)throw new Error(await response.text());
+  return response;
+}
+function decode(field,bytes){
+  if(bytes.some(b=>!b||!b.valid||b.value===null))return "Unavailable";
+  const encoding=field.encoding||"uint8";
+  let raw=bytes[0].value;
+  if(bytes.length===2){
+    raw=encoding.endsWith("_le")?raw+256*bytes[1].value:256*raw+bytes[1].value;
+    if(encoding.startsWith("int16")&&raw>=32768)raw-=65536;
+  }else if(encoding==="int8"&&raw>=128)raw-=256;
+  else if(encoding==="bcd"){
+    if((raw&15)>9||(raw>>4)>9)return "Invalid BCD";
+    raw=(raw>>4)*10+(raw&15);
+  }
+  const value=raw*(field.scale??1)+(field.offset??0);
+  const label=field.values?.[String(raw)];
+  return `${label||value}${field.unit?" "+field.unit:""}`;
+}
+function render(){
+  el("fields").replaceChildren();
+  if(!documentMap)return;
+  const map=documentMap.maps[Number(el("map").value)||0];
+  for(const field of map.fields){
+    const row=document.createElement("tr");
+    const bytes=Array.from({length:field.width||1},(_,i)=>
+      cache?.bytes.find(b=>b.mem===field.mem&&b.addr===field.addr+i));
+    cell(row,field.name||field.id);
+    cell(row,`${field.mem} 0x${field.addr.toString(16).toUpperCase()}${field.width===2?" (2 bytes)":""}`);
+    cell(row,decode(field,bytes));
+    const ages=bytes.map(b=>b?.age_ms===null||!b?"not read":`${b.age_ms} ms`);
+    const failures=bytes.filter(b=>b?.error).map(b=>b.error);
+    cell(row,`${field.status||"unverified"}; ${bytes.some(b=>!b||b.stale)?"stale":"fresh"}; age ${ages.join(" / ")}${bytes.some(b=>b?.pending)?"; queued":""}${failures.length?"; "+failures.join(" / "):""}`);
+    const td=cell(row,""), input=document.createElement("input"), button=document.createElement("button");
+    input.type="number";input.min=0;input.max=86400000;input.step=100;
+    input.value=bytes[0]?.interval_ms??field.interval_ms??map.interval_ms;
+    input.setAttribute("aria-label","Polling interval for "+(field.name||field.id));
+    button.textContent="Apply";
+    button.onclick=()=>run(async()=>{
+      const interval=Number(input.value);
+      if(!Number.isInteger(interval)||(interval!==0&&(interval<100||interval>86400000)))
+        throw new Error("Use 100..86400000 ms, or 0 to restore map cadence");
+      for(let i=0;i<(field.width||1);i++)
+        await request("/memory/override",{method:"POST",body:new URLSearchParams({
+          mem:field.mem,addr:String(field.addr+i),interval_ms:String(interval)
+        })});
+      message("Volatile cadence updated; shared bytes affect all maps.");await refresh();
+    });
+    td.append(input,button);el("fields").append(row);
+  }
+}
+async function load(){
+  const response=await request("/memory/map");documentMap=await response.json();
+  el("map").replaceChildren();
+  documentMap.maps.forEach((map,i)=>{
+    const option=document.createElement("option");option.value=i;option.textContent=map.name||map.id;el("map").append(option);
+  });
+}
+async function refresh(){
+  cache=await (await request("/memory/cache")).json();
+  el("status").textContent=`Boot ${cache.boot}; uptime ${cache.uptime_ms} ms; free heap ${cache.free_heap} bytes; storage ${cache.filesystem?"mounted":"not mounted"}; polling ${cache.paused?"paused":"active"}. Zero restores default cadence.`;
+  if(!el("fields").contains(document.activeElement))render();
+}
+async function run(action){
+  if(busy)return;
+  busy=true;
+  try{await action();}catch(error){message(error.message,true);}
+  finally{busy=false;}
+}
+el("upload").onclick=()=>run(async()=>{
+  const file=el("file").files[0];if(!file)throw new Error("Select a JSON map file");
+  if(file.size>8192)throw new Error("Map file exceeds 8192 bytes");
+  await request("/memory/map",{method:"POST",headers:{"Content-Type":"application/json"},body:await file.text()});
+  await load();await refresh();message("Map stored in flash and activated. No firmware reflash.");
+});
+el("initialize").onclick=()=>run(async()=>{
+  if(!confirm("Initialize the dedicated LittleFS partition? This erases existing filesystem contents if it cannot mount. Do not use on a device with files you need to preserve."))return;
+  await request("/memory/initialize",{method:"POST",body:new URLSearchParams({confirm:"INITIALIZE"})});
+  await refresh();message("Storage initialized. Upload a map.");
+});
+el("refresh").onclick=()=>run(refresh);
+el("map").onchange=render;
+run(async()=>{await refresh();await load();render();});
+timer=setInterval(()=>run(refresh),2000);
+document.addEventListener("visibilitychange",()=>{
+  clearInterval(timer);
+  if(!document.hidden){run(refresh);timer=setInterval(()=>run(refresh),2000);}
+});
+</script>
+</html>

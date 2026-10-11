@@ -1,7 +1,55 @@
 import yaml
+import json
 import pytest
 
 from plz import maps
+
+
+def test_device_map_is_bounded_and_read_only():
+    text = maps.gen_device_map("palazzetti-ecofire-lara")
+    assert len(text.encode()) <= 8192
+    data = json.loads(text)
+    assert data["format"] == 1
+    profile = data["maps"][0]
+    assert profile["interval_ms"] == 15000
+    assert 1 <= len(profile["fields"]) <= 48
+    state = next(field for field in profile["fields"] if field["id"] == "power_state")
+    assert state["addr"] == 0xF9 and state["values"]["26"] == "off"
+    assert all(field["status"] in ("observed", "confirmed") for field in profile["fields"])
+    assert not any(key in field for field in profile["fields"] for key in ("access", "write_status", "write_sources"))
+
+
+def test_device_map_explicit_hypothesis_and_structure_members():
+    data = json.loads(maps.gen_device_map("palazzetti-ecofire-lara",
+                                        ["chrono_programs.program_1.start", "phase_step"], 300000))
+    fields = data["maps"][0]["fields"]
+    assert {field["id"] for field in fields} == {"chrono_programs.program_1.start", "phase_step"}
+    assert all(field["status"] == "hypothesis" for field in fields)
+    assert next(field for field in fields if field["id"].endswith(".start"))["addr"] == 0x3B
+
+
+@pytest.mark.parametrize("interval", [0, 99, 86400001, True, 100.5])
+def test_device_map_invalid_interval(interval):
+    with pytest.raises(ValueError, match="interval"):
+        maps.gen_device_map("palazzetti-ecofire-lara", interval_ms=interval)
+
+
+def test_device_map_refuses_unlocated_and_raw_structures():
+    with pytest.raises(ValueError, match="Unknown or unlocated"):
+        maps.gen_device_map("palazzetti-ecofire-lara", ["service_ignition_time"])
+    with pytest.raises(ValueError, match="Unknown or unlocated"):
+        maps.gen_device_map("palazzetti-ecofire-lara", ["chrono_programs"])
+
+
+@pytest.mark.parametrize("override", [{"encoding": "ascii"}, {"scale": True}, {"offset": float("inf")}])
+def test_device_map_refuses_invalid_conversions(monkeypatch, override):
+    monkeypatch.setattr(maps, "load", lambda _: {
+        "profile": "fixture", "fields": [
+            {"id": "field", "name": "Field", "mem": "ram", "addr": 0, "status": "observed", **override}
+        ],
+    })
+    with pytest.raises(ValueError):
+        maps.gen_device_map("fixture")
 
 
 def test_all_profiles_load():

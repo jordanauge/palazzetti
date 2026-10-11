@@ -76,6 +76,12 @@ ESPHome dashboard. Its Lara settings and schedule bytes are read-only: no confir
 on/off command or safe write rule exists yet. Separate boot-disabled write/EEPROM switches
 never bypass the address/value allowlist.
 
+The device-hosted [uploaded-map dashboard](docs/esphome.md#37-uploaded-map-dashboard) at
+`http://palazzetti.local/memory` uses plain JSON files instead of firmware-specific UI code.
+Export with `plz gen-device-map palazzetti-ecofire-lara -o lara.json` and upload in the page.
+Map files persist in flash; shared checked-read cache and byte polling overrides stay in RAM.
+It is strictly read-only and reports unavailable/failed/stale values explicitly.
+
 ## Status
 
 | Area | State |

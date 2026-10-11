@@ -1,4 +1,11 @@
-# Optional ESPHome web dashboard and native API read service; no custom web application.
+# ESPHome entities plus a read-only JSON-map dashboard at /memory.
+esphome:
+  platformio_options:
+    board_build.ldscript: eagle.flash.4m1m.ld
+
+palazzetti:
+  map_web: {}
+
 web_server:
   port: 80
   version: 3

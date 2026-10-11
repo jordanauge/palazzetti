@@ -1,14 +1,17 @@
 """Palazzetti stove hub for boards speaking the Micronova protocol (not Fumis; see docs/boards.md)."""
 
+from pathlib import Path
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
+from esphome import final_validate as fv
 from esphome.components import socket, uart
 from esphome.const import CONF_ADDRESS, CONF_ID, CONF_PORT, CONF_VALUE
+from esphome.core import CORE
 
 CODEOWNERS = ["@jordanauge"]
 DEPENDENCIES = ["uart"]
-AUTO_LOAD = ["socket"]
+AUTO_LOAD = ["socket", "json"]
 MULTI_CONF = True
 
 CONF_PALAZZETTI_ID = "palazzetti_id"
@@ -27,6 +30,7 @@ palazzetti_ns = cg.esphome_ns.namespace("palazzetti")
 micronova_ns = cg.global_ns.namespace("micronova")
 Palazzetti = palazzetti_ns.class_("Palazzetti", cg.Component, uart.UARTDevice)
 LabServer = palazzetti_ns.class_("LabServer", cg.Component)
+MapWeb = palazzetti_ns.class_("MapWeb", cg.Component)
 BusEntity = palazzetti_ns.class_("BusEntity", cg.PollingComponent)
 WriteAction = palazzetti_ns.class_("WriteAction", automation.Action)
 
@@ -60,6 +64,26 @@ def _consume_lab_socket(config):
     if CONF_LAB_SERVER in config:
         socket.consume_sockets(1, "palazzetti_lab", socket.SocketType.TCP_LISTEN)(config)
         socket.consume_sockets(1, "palazzetti_lab")(config)
+    return config
+
+
+def _map_web(config):
+    if "map_web" in config:
+        if CORE.target_platform != "esp8266":
+            raise cv.Invalid("map_web currently supports ESP8266 only")
+        full_config = fv.full_config.get()
+        if "web_server" not in full_config or "auth" not in full_config["web_server"]:
+            raise cv.Invalid("map_web requires web_server with auth")
+        auth = full_config["web_server"]["auth"]
+        if auth.get("type", "basic") == "basic" and len(
+            (auth["username"] + ":" + auth["password"]).encode()
+        ) > 53:
+            raise cv.Invalid("ESP8266 Basic auth requires username:password <=53 UTF-8 bytes; use a shorter strong password or digest auth")
+        if len(full_config["palazzetti"]) != 1:
+            raise cv.Invalid("map_web requires a single Palazzetti hub")
+        layout = full_config["esphome"].get("platformio_options", {}).get("board_build.ldscript", "")
+        if not layout or layout == "eagle.flash.4m.ld":
+            raise cv.Invalid("map_web requires an explicit filesystem linker layout; use eagle.flash.4m1m.ld for the 4 MiB NodeMCU")
     return config
 
 
@@ -99,6 +123,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_MAX_QUEUE, default=48): cv.int_range(4, 250),
             cv.Optional(CONF_LAB_SERVER): LAB_SCHEMA,
             cv.Optional(CONF_WRITE_ALLOWLIST, default=[]): cv.ensure_list(WRITE_RULE_SCHEMA),
+            cv.Optional("map_web"): cv.Schema({cv.GenerateID(): cv.declare_id(MapWeb)}),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -106,8 +131,11 @@ CONFIG_SCHEMA = cv.All(
     _consume_lab_socket,
 )
 
-FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
-    "palazzetti", baud_rate=1200, require_tx=True, require_rx=True, stop_bits=2
+FINAL_VALIDATE_SCHEMA = cv.All(
+    uart.final_validate_device_schema(
+        "palazzetti", baud_rate=1200, require_tx=True, require_rx=True, stop_bits=2
+    ),
+    _map_web,
 )
 
 
@@ -120,6 +148,15 @@ async def to_code(config):
     cg.add(var.set_frame_gap(config[CONF_FRAME_GAP]))
     cg.add(var.set_max_retries(config[CONF_MAX_RETRIES]))
     cg.add(var.set_max_queue(config[CONF_MAX_QUEUE]))
+    if web := config.get("map_web"):
+        cg.add_define("USE_PALAZZETTI_MAP_WEB")
+        cg.add_library("LittleFS", None)
+        page = Path(__file__).with_name("map_web.html").read_text()
+        cg.add_global(cg.RawStatement('static const char MAP_WEB_PAGE[] PROGMEM = R"plzpage(' + page + ')plzpage";'))
+        dashboard = cg.new_Pvariable(web[CONF_ID])
+        await cg.register_component(dashboard, web)
+        await cg.register_parented(dashboard, var)
+        cg.add(dashboard.set_page(cg.RawExpression("MAP_WEB_PAGE")))
     for rule in config[CONF_WRITE_ALLOWLIST]:
         cg.add(var.add_write_rule(MEMORY[rule[CONF_MEMORY]], rule[CONF_ADDRESS],
                                  rule["min_value"], rule["max_value"]))

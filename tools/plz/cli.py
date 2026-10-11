@@ -298,6 +298,11 @@ def cmd_gen_esphome(a):
     Path(a.output).write_text(text) if a.output else print(text)
 
 
+def cmd_gen_device_map(a):
+    text = maps.gen_device_map(a.profile, a.field, a.interval_ms)
+    Path(a.output).write_text(text) if a.output else print(text, end="")
+
+
 def cmd_gen_html(a):
     from .memory_html import generate
 
@@ -395,6 +400,10 @@ def main(argv=None):
     sp.add_argument("profiles", nargs="*"), sp.add_argument("-o", "--output")
     sp = add("gen-esphome", cmd_gen_esphome, "ESPHome entities package from a map profile")
     sp.add_argument("profile"), sp.add_argument("-o", "--output")
+    sp = add("gen-device-map", cmd_gen_device_map, "compact read-only JSON for the device /memory dashboard")
+    sp.add_argument("profile"), sp.add_argument("-o", "--output")
+    sp.add_argument("--field", action="append", help="located scalar field ID (repeatable; default observed/confirmed)")
+    sp.add_argument("--interval-ms", type=int, default=15000)
     sp = add("gen-html", cmd_gen_html, "self-contained RAM and EEPROM hex maps with hover details")
     sp.add_argument("profiles", nargs="*")
     sp.add_argument("-o", "--output", default="docs")

@@ -2,6 +2,7 @@
 #include "micronova.h"
 #include "write_policy.h"
 #include "polling_plan.h"
+#include "read_cache.h"
 
 #include <cstdio>
 
@@ -102,6 +103,23 @@ int main() {
     CHECK(plan.set(Memory::RAM, i, i, 100, 0));
   CHECK(!plan.set(Memory::RAM, 100, 100, 100, 0));
   CHECK(plan.set(Memory::RAM, 0, 0, 200, 0));
+
+  esphome::palazzetti::ReadCache cache;
+  CHECK(cache.find(Memory::RAM, 0xF9) == nullptr);
+  cache.put(Memory::RAM, 0xF9, UINT32_MAX - 50, true, 0x1A);
+  auto *entry = cache.find(Memory::RAM, 0xF9);
+  CHECK(entry && entry->valid && entry->value == 0x1A && !entry->error);
+  CHECK(uint32_t(49 - entry->updated_ms) == 100);
+  CHECK(cache.find(Memory::EEPROM, 0xF9) == nullptr);
+  cache.put(Memory::RAM, 0xF9, 200, false, 0, "timeout");
+  CHECK(!cache.find(Memory::RAM, 0xF9)->valid);
+  CHECK(cache.find(Memory::RAM, 0xF9)->error != nullptr);
+  cache.put(Memory::RAM, 0xF9, 300, true, 0x4B);
+  CHECK(cache.find(Memory::RAM, 0xF9)->error == nullptr);
+  for (uint16_t i = 0; i < cache.CAPACITY; i++)
+    cache.put(Memory::EEPROM, i, 400, true, i);
+  CHECK(cache.find(Memory::RAM, 0xF9) == nullptr);
+  CHECK(cache.find(Memory::EEPROM, 127)->value == 127);
 
   std::printf(failures ? "%d failure(s)\n" : "all micronova tests passed\n", failures);
   return failures ? 1 : 0;

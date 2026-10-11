@@ -1,5 +1,5 @@
 // Run with: node tests/test_memory_html.cjs /path/to/chrome
-const {spawn} = require("node:child_process");
+const {spawn, execFileSync} = require("node:child_process");
 const {mkdtempSync, rmSync} = require("node:fs");
 const {tmpdir} = require("node:os");
 const {join, resolve} = require("node:path");
@@ -174,6 +174,84 @@ async function main() {
     }
     assert.deepEqual(errors,[]);
     console.log("Browser tests passed: linked catalogue, category tabs, independent hover/selection, click-only details, layout colors, members, captures, search, keyboard, responsive layout.");
+    const mock=await send("Page.addScriptToEvaluateOnNewDocument",{source:`
+      window.calls=[];
+      const fixture={format:1,maps:[{id:"test",interval_ms:1000,fields:[
+        {id:"state",name:"State",mem:"ram",addr:249,status:"observed",values:{"26":"off"}},
+        {id:"word",mem:"ram",addr:10,width:2,encoding:"int16_le",scale:0.5},
+        {id:"missing",mem:"eeprom",addr:78},
+        {id:"bcd",mem:"ram",addr:20,encoding:"bcd"}
+      ]}]};
+      window.sample={boot:123,uptime_ms:4000,free_heap:20000,filesystem:true,paused:false,bytes:[
+        {mem:"ram",addr:249,value:26,valid:true,stale:false,age_ms:20,interval_ms:1000},
+        {mem:"ram",addr:10,value:254,valid:true,stale:false,age_ms:20},
+        {mem:"ram",addr:11,value:255,valid:true,stale:false,age_ms:40},
+        {mem:"ram",addr:20,value:90,valid:true,stale:false,age_ms:40}
+      ]};
+      window.fetch=async(url,options={})=>{
+        window.calls.push({url,method:options.method||"GET",body:options.body?.toString()});
+        if(url==="/memory/map")return new Response(JSON.stringify(fixture));
+        if(url==="/memory/cache")return new Response(JSON.stringify(window.sample));
+        if(url==="/memory/override")return new Response("updated");
+        return new Response("not found",{status:404});
+      };
+    `},sessionId);
+    const loaded=new Promise(done=>waiters.set(sessionId+":Page.loadEventFired",done));
+    await send("Page.navigate",{url:pathToFileURL(resolve("components/palazzetti/map_web.html")).href},sessionId);
+    await loaded;
+    assert.equal(await evaluate('document.querySelectorAll("#fields tr").length'),4);
+    assert.match(await evaluate('document.getElementById("fields").textContent'),/off/);
+    assert.match(await evaluate('document.getElementById("fields").textContent'),/-1/);
+    assert.match(await evaluate('document.getElementById("fields").textContent'),/Unavailable/);
+    assert.match(await evaluate('document.getElementById("fields").textContent'),/Invalid BCD/);
+    await evaluate('(async()=>{sample.bytes[0].valid=false;sample.bytes[0].value=null;sample.bytes[0].error="timeout";await refresh()})()');
+    assert.match(await evaluate('document.querySelector("#fields tr").textContent'),/Unavailable.*timeout/);
+    await evaluate('(async()=>{const input=document.querySelector("#fields input");input.focus();input.value=4500;await refresh()})()');
+    assert.equal(await evaluate('document.querySelector("#fields input").value'),"4500");
+    await evaluate('document.querySelector("#fields button").onclick()');
+    // The asynchronous handler is observable via the fetch stub, not a live server.
+    assert.match(await evaluate('calls.find(c=>c.url==="/memory/override").body'),/interval_ms=4500/);
+    assert.equal(await evaluate('calls.filter(c=>c.method!=="GET").every(c=>c.url==="/memory/override")'),true);
+    await evaluate('(async()=>{fetch=async()=>new Response("Unauthorized",{status:401});await run(refresh)})()');
+    assert.match(await evaluate('document.getElementById("message").textContent'),/Unauthorized/);
+    assert.deepEqual(errors,[]);
+    console.log("Device dashboard tests passed: uploaded schema rendering, enum/signed/scaled values, invalid BCD, unavailable/failed reads, editing preservation, volatile override and HTTP errors.");
+    if(process.env.PLZ_DEVICE_URL){
+      await send("Page.removeScriptToEvaluateOnNewDocument",{identifier:mock.identifier},sessionId);
+      const credentials=JSON.parse(execFileSync(resolve(".venv/bin/python"),["-c",
+        "import json,yaml; from pathlib import Path; s=yaml.safe_load(Path('example/secrets.yaml').read_text()); print(json.dumps([s['web_username'],s['web_password']]))"
+      ],{encoding:"utf8"}));
+      const authorization="Basic "+Buffer.from(credentials.join(":")).toString("base64");
+      await send("Network.enable",{},sessionId);
+      await send("Network.setExtraHTTPHeaders",{headers:{Authorization:authorization}},sessionId);
+      const loaded=new Promise(done=>waiters.set(sessionId+":Page.loadEventFired",done));
+      await send("Page.navigate",{url:process.env.PLZ_DEVICE_URL+"/memory"},sessionId);
+      await loaded;
+      await evaluate(`new Promise((resolve,reject)=>{
+        const check=()=>{
+          if(document.querySelectorAll("#fields tr").length){observer.disconnect();resolve();}
+          else if(document.getElementById("message").classList.contains("error")){
+            observer.disconnect();reject(new Error(document.getElementById("message").textContent));
+          }
+        };
+        const observer=new MutationObserver(check);
+        observer.observe(document.body,{childList:true,subtree:true});check();
+      })`);
+      assert.equal(await evaluate('document.querySelectorAll("#fields tr").length'),
+        await evaluate('documentMap.maps[Number(el("map").value)||0].fields.length'));
+      assert.match(await evaluate('document.getElementById("status").textContent'),/storage mounted/);
+      const body=await evaluate('(async()=>await (await request("/memory/map")).text())()');
+      await evaluate(`(async()=>{
+        const file=new File([${JSON.stringify(body)}],"lara.json",{type:"application/json"});
+        const transfer=new DataTransfer();transfer.items.add(file);el("file").files=transfer.files;
+        await el("upload").onclick();
+      })()`);
+      assert.match(await evaluate('el("message").textContent'),/Map stored in flash and activated/);
+      await evaluate('document.querySelector("#fields input").value=0;document.querySelector("#fields button").onclick()');
+      assert.match(await evaluate('el("message").textContent'),/Volatile cadence updated/);
+      assert.deepEqual(errors,[]);
+      console.log("Live ESP browser workflow passed: authenticated page, streamed cache, upload through file picker and volatile override.");
+    }
   }finally{
     clearTimeout(timeout);
     if(browser.exitCode===null){browser.kill();await stopped;}

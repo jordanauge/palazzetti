@@ -1,82 +1,196 @@
-# 1-wire adapter
+# Diode, resistor and NPN: the one-wire serial adapter
 
-[← README](../README.md) · [hardware](hardware.md) · [protocol](protocol.md)
+[README](../README.md) · [hardware](hardware.md) · [protocol](protocol.md) · [firmware and OTA](esphome.md)
 
-The stove's Micronova bus is a **single wire** that carries both directions at 5 V
-([protocol.md §1](protocol.md#1-physical-layer)). The ESP8266 has a separate TX and RX at 3.3 V and is
-**not 5 V tolerant** in a documented, reliable way. The adapter bridges the two:
+This page documents the owner's retained **one diode + one 10 kΩ resistor +
+one NPN transistor** drawing. It separates that evidence from the conflicting
+MOSFET reference previously used in this documentation, and explains the
+ESP8266 UART assignments. This is a serial interface to the stove/display bus,
+not a Dallas/Maxim 1-Wire interface and not standard RS232.
 
-- it **splits** the bidirectional bus into an ESP TX input and an ESP RX output;
-- it **shifts levels** between 5 V (stove) and 3.3 V (ESP);
-- it keeps the bus **open-drain**: nobody drives it high, so the display panel and the ESP can share it.
+**Important:** the drawing omits supply/ground and receive biasing. It establishes
+three signal nets and a resistor value, but is not a complete, electrically
+validated construction schematic. Physical HAT contact positions, green-wire
+identity, transistor part/lead order and stove connector pins remain unresolved.
+Do not infer how to insert the ESP from this diagram.
 
-> **Status.** The topology below is the common, non-inverting design used for Micronova boards. It matches what
-> the 2020 code expects (no UART inversion, own frames echoed on RX), but it has **not yet been checked against
-> the physical adapter**. Fill in §4 from the real board and fix the figure if anything differs.
+## 1. Configuration A: the retained diode/resistor/NPN drawing
 
-The owner's retained drawing instead shows **a diode, a 10 kΩ resistor and an
-NPN transistor**. It is not Figure 1's BSS138 circuit. The as-built HAT contact
-positions, transistor part/pin order, receive biasing and power connections have
-not been established. Do not substitute this reference circuit for the actual
-board when deciding how to insert the ESP.
+Figure 1 is an independently redrawn net-level interpretation of the owner's
+saved schematic. It is not a photograph of the HAT and does not add missing
+power rails or an assumed receive pull-up.
 
-## 1. Reference circuit
+![Retained NPN adapter topology](figures/adapter.2.npn.svg)
 
-![Adapter schematic](figures/adapter.1.schematic.svg)
+**Figure 1:** D1 connects the shared bus to the transmit node, with its cathode
+bar at TX. R1 connects TX to Q1's base; Q1's arrow-side emitter connects to the
+bus and its collector connects to RX. The original drawing labels Q1 as NPN.
+These are transistor terminal names, not physical package pin numbers.
 
-**Figure 1**: 1-wire ↔ TX/RX adapter. A BSS138 level shifter joins the 5 V bus to a 3.3 V line; ESP RX reads that
-line directly and ESP TX can only pull it low, through a Schottky diode. Both sides are pulled up, nobody drives high.
-
-| Ref | Part | Role |
+| Item | Evidence-backed value / connection | Not established |
 |---|---|---|
-| Q1 | BSS138 N-MOSFET (or any bidirectional I²C level-shifter module) | 5 V ↔ 3.3 V open-drain shifting |
-| R1 | 10 kΩ to +5 V | bus pull-up, stove side (may already exist on the stove board: TO VERIFY) |
-| R2 | 10 kΩ to +3.3 V | pull-up, ESP side |
-| D1 | BAT85 / 1N5817 Schottky, cathode to ESP TX | lets TX pull the line low, never push it high |
+| D1 | Diode; anode on shared `Tx/Rx`, cathode/bar on `Tx` | Part number, silicon versus Schottky, ratings |
+| R1 | **10 kΩ**, between `Tx` and Q1 base | As-built measured resistance, tolerance, power rating |
+| Q1 | **NPN**, emitter to bus, collector to `Rx`, base through R1 to `Tx` | Part number, package, B/C/E lead order, ratings |
+| `Tx` | ESP sends to adapter; **D8 / GPIO15** | Physical HAT contact |
+| `Rx` | Adapter sends to ESP; **D7 / GPIO13** | Physical HAT contact and receive bias/protection |
+| `Tx/Rx` | Stove's bidirectional serial bus | Stove/DB9 connector contact |
+| Supply and ground | Not shown in the saved circuit | Power source, regulator paths, signal ground, isolation |
 
-## 2. How it works
+Do not replace Q1 with a BSS138: that is a MOSFET, not an NPN transistor.
+Likewise, neither a BC547 nor a 2N3904 is identified by the evidence. Both are
+examples of small-signal NPN families, but cannot be specified as the installed
+part; their package pinouts can differ. BAT85/1N5817 are parts proposed for the
+separate reference circuit, **not identified parts of this HAT**.
 
-| ESP TX | D1 | 3.3 V line | Bus | ESP RX sees |
-|---|---|---|---|---|
-| idle (high) | blocked | high (R2) | high (R1) | stove/panel traffic |
-| low (start bit, `0` bits) | conducts | low | pulled low by Q1 | our own bits (echo) |
-| high, stove pulls bus low | blocked | pulled low by Q1 body diode/channel | low | stove reply |
+### Intended signal behavior and missing conditions
 
-Consequences for the firmware:
+When TX is low and the bus is high, D1 can conduct from bus to TX, pulling the
+bus toward the TX low level plus the diode's forward drop. That drop depends
+on the actual diode and current; a part number cannot be chosen from a symbol.
+When the bus is low and TX is high, D1 is reverse-biased.
 
-- **Echo**: every byte sent comes back on RX. The component reads and discards it (`echo: auto` detects it on the
-  first frame; force with `echo: true/false`).
-- **No inversion**: the UART is used as-is (`uart:` without `inverted`).
-- **Collisions** with the panel are possible: the component retries (`max_retries`) and counts them (`info`).
+With Q1 wired as drawn, a low bus emitter and high TX through R1 can turn Q1 on.
+Its collector can then pull RX low. If an appropriate **3.3 V receive pull-up**
+exists elsewhere, this would reproduce bus-low as RX-low. At bus idle high,
+Q1 should be off and that pull-up would establish RX-high. This is the intended
+non-inverting interpretation; **the required bias, off-state junction stress,
+GPIO back-power paths and actual voltage levels have not been verified**.
 
-## 3. Alternatives
+R1 limits **base current**, not bus voltage. Its 10 kΩ value does not make RX
+5 V tolerant and does not prove TX is protected from the stove's bus voltage.
+This asymmetric transistor arrangement is not automatically equivalent to a
+bidirectional level shifter.
 
-| Variant | Notes |
-|---|---|
-| NPN transistor on TX + resistor divider on RX | simple, but the transistor **inverts** TX: use `tx_pin: {number: GPIO15, inverted: true}` |
-| Optocouplers (e.g. 2× PC817) | galvanic isolation from the stove; slower edges, fine at 1200 baud |
-| Diode + divider only | works when the stove pull-up is weak; check the low level reaches < 0.8 V |
+The drawing alone cannot establish:
 
-## 4. As built (TO FILL)
+- whether RX has a pull-up and which rail it uses;
+- whether the stove/panel already supplies the bus pull-up;
+- safe behavior with the ESP unpowered or during reset;
+- whether the bus can pull GPIO15 high enough to prevent boot;
+- whether connector ground is safely compatible with USB/computer ground.
 
-| Item | Value |
-|---|---|
-| Topology | TO VERIFY (photo + schematic in the private repo `hardware/adapter/`) |
-| Parts and values | TO VERIFY |
-| Stove-side pull-up present on the board? | TO VERIFY (measure bus idle voltage with the adapter disconnected) |
-| Power source | USB-powered devkit preferred; stove supply pin and current budget unverified |
-| Measured levels | bus idle __ V, bus low __ V, ESP RX low __ V |
+The intended receive path can echo our transmitted bits. The firmware uses
+`echo: auto` to distinguish echo from a reply; echo handling is separate from
+UART pin mapping and electrical inversion.
 
-Measurement procedure:
+## 2. Configuration B: the conflicting MOSFET reference
 
-1. Verify the adapter on an isolated bench supply first, including its behaviour while the ESP is
-   unpowered: avoid back-powering GPIOs and check RX never exceeds 3.3 V.
-2. Before any stove connection, follow the [connector/isolation precautions](hardware.md#4-stove-connector-to-verify).
-   Live measurements inside the stove need a qualified technician and appropriately isolated equipment;
-   a grounded scope/USB lead can introduce a dangerous ground path.
-3. With connector pinout and isolation established, verify idle/low levels against documented signal ground
-   and observe 1200 baud, 8N2 traffic. Power down before changing connections.
-4. With the checked adapter connected, `plz inspect ram 0xF9` should return a checksum-valid
-   `0x1A` when this Lara is off. A matching value alone does not validate the electrical installation.
+The previous page centered the following **different** reference topology.
+It remains here for comparison, not as evidence of the owner's board.
 
-[← hardware](hardware.md) · [protocol →](protocol.md)
+![Separate MOSFET reference circuit](figures/adapter.1.schematic.svg)
+
+**Figure 2:** A BSS138 joins separate 5 V and 3.3 V pulled-up lines. ESP RX reads
+the low-voltage line directly; TX pulls it low through a Schottky diode.
+Unlike Figure 1, this circuit has two resistors and explicitly drawn supply rails.
+
+| Item | Configuration A: retained drawing | Configuration B: reference proposal |
+|---|---|---|
+| Transistor | NPN, part unknown | BSS138 N-channel MOSFET |
+| Transistor terminals | Base through resistor to TX; emitter to bus; collector to RX | Gate to 3.3 V; source to low-voltage line; drain to bus |
+| Resistors | One **10 kΩ** base resistor | Two **10 kΩ** pull-ups, one per rail |
+| Diode | Part unknown; cathode to TX | BAT85 or 1N5817 Schottky proposal; cathode to TX |
+| Receive path | Transistor collector; external bias missing from drawing | Directly reads the pulled-up 3.3 V line |
+| Evidence | Owner's retained drawing; as-built match unverified | Documentation reference; not the owner's identified HAT |
+| Firmware expectation | Intended non-inverting, needs electrical confirmation | Intended non-inverting, needs electrical confirmation |
+
+**These configurations cannot be combined by exchanging transistor names.**
+An NPN common-emitter transmitter (emitter to ground, collector to bus) is yet
+another circuit: TX-high turns the transistor on and pulls the bus low, which
+inverts TX. That is **not** Q1's role in Figure 1. Do not enable UART inversion
+because a drawing merely contains an NPN.
+
+## 3. UART0 before and after `Serial.swap()`
+
+The original firmware configures the stove UART as:
+
+```cpp
+Serial.begin(1200, SERIAL_8N2);
+Serial.swap();  // RX = D7, TX = D8
+```
+
+`Serial` is **UART0**, the full transmit/receive hardware UART. Swapping changes
+its pin routing, not its baud rate, data bits, parity, stop bits or polarity.
+
+| Function | Before swap: UART0 default | After swap: UART0 alternate |
+|---|---|---|
+| TX | **GPIO1**, devkit `TX`; connected to USB serial chip's RX | **GPIO15 / D8** → adapter `Tx` |
+| RX | **GPIO3**, devkit `RX`; connected to USB serial chip's TX | **GPIO13 / D7** ← adapter `Rx` |
+| Protocol | 1200 baud, 8 data bits, no parity, 2 stop bits after `begin` | Same **1200 8N2** |
+| Debug output | Must not mix logs into a stove UART | Still must not mix logs into UART0 |
+| USB upload | Boot ROM uses default GPIO1/GPIO3 | Reset/upload still uses default GPIO1/GPIO3 |
+
+Swapping lets the stove use a dedicated hardware UART on D7/D8 without sharing
+the USB chip's runtime TX/RX wires. It also preserves the original HAT's intended
+signal assignment. **It does not create a second full UART on GPIO1/GPIO3.**
+After reset the boot ROM operates independently; the swap is applied again by
+the firmware at startup. This is why USB flashing still works.
+
+ESPHome selects that alternate routing from the explicit pins; no custom
+`Serial.swap()` lambda should be added:
+
+```yaml
+uart:
+  id: stove_uart
+  tx_pin: GPIO15  # D8, ESP sends
+  rx_pin: GPIO13  # D7, ESP receives
+  baud_rate: 1200
+  data_bits: 8
+  parity: NONE
+  stop_bits: 2
+```
+
+GPIO15 is a boot strap and **must be low during reset**. The devkit pull-down
+must remain in place; the HAT must not defeat it. Once booted, the UART uses
+its normal idle-high TX level. Debug or OTA configuration does not remove this
+electrical boot constraint.
+
+## 4. Debug needs TX only: use UART1, not the stove UART
+
+The original code separately uses `Serial1.begin(115200)` and
+`Serial1.println(...)`. ESP8266 **UART1 has a usable TX output only**, on
+**GPIO2 / D4**. That is sufficient to send logs to a computer; no debug RX is needed.
+The current ESPHome configuration preserves this separation:
+
+```yaml
+logger:
+  hardware_uart: UART1
+  baud_rate: 115200
+```
+
+For a hardware debug connection, use a **3.3 V TTL USB-UART receiver**, with
+its RX connected to D4 and a suitable common ground, at **115200 8N1**.
+Leave its TX and power pins disconnected. Do not use a ±12 V RS232 adapter.
+GPIO2 must remain high during boot; do not attach a receiver/load that pulls it low.
+Only attach grounded computer equipment once the stove-side isolation/ground
+arrangement is verified.
+
+Alternatively, `make logs DEVICE=palazzetti.local` receives ESPHome logs over
+Wi-Fi. Native API transport encryption is automatic; it is not a requirement
+to encrypt saved log files. The devkit's existing USB chip is on GPIO1/GPIO3,
+so it does **not** receive UART1/D4 runtime logs. ROM boot messages can still
+appear on GPIO1; they are not the application log stream.
+
+Never use `Serial.print()` for debugging on the stove UART: even an ASCII
+message becomes unintended traffic on the shared bus.
+
+## 5. Establish the as-built circuit before connecting
+
+Keep the stove and USB disconnected while tracing the HAT. Record the actual
+diode marking/polarity, Q1 marking and datasheet lead order, resistor value,
+every socket contact, supply/ground paths and any hidden RX pull-up.
+Green is a wire color, not a signal definition. D7/D8 net identities do not
+establish which way around the ESP fits the socket.
+
+Have the incomplete circuit checked on an isolated bench before stove use.
+Verify ESP-side levels, reset/unpowered behavior and bus-low behavior against
+the actual component specifications. Live measurements inside the stove
+require a qualified technician and suitable isolated equipment; do not use
+a grounded scope/USB cable to guess connector pins.
+
+Firmware is already available over **`palazzetti.local`**; OTA and the device
+name are documented in [ESPHome §2.1](esphome.md#21-ota-and-device-name).
+An OTA upload updates ESP flash, **not the stove controller firmware**.
+
+[Hardware](hardware.md) · [Protocol](protocol.md) · [ESPHome and OTA](esphome.md)

@@ -54,6 +54,51 @@ If PlatformIO fails to download a package (e.g. TLS errors on a registry mirror)
 package can also be installed from a local archive (`pio pkg install -g -t file:///path/pkg.tar.gz`); then make sure
 its `.piopm` carries `"owner": "platformio"` so that ESPHome's `platformio/<name>` requirement matches it.
 
+### 2.1 OTA and device name
+
+The selected device name is **`palazzetti`**, set by the base package's `name`
+substitution and used by `esphome.name`. Keep it independent of the profile:
+`palazzetti-ecofire-lara.yaml` describes the Lara configuration, not the hostname.
+The friendly display name is **Palazzetti stove**. `ecofire`, `ecofire-lara` and
+`lara` would be valid alternative device names, but are **not aliases** of the
+currently flashed device.
+
+| Identifier | Current value |
+|---|---|
+| Firmware project / component | `palazzetti` |
+| Device name / mDNS host | `palazzetti` / `palazzetti.local` |
+| Configuration profile | `palazzetti-ecofire-lara` |
+| Wi-Fi fallback AP | `palazzetti fallback` |
+| OTA transport | ESPHome native OTA, TCP **8266** on ESP8266 |
+
+After the initial USB flash, build and upload over Wi-Fi:
+
+```bash
+make build
+make upload DEVICE=palazzetti.local
+# If mDNS is unavailable, use the actual current DHCP address:
+make upload DEVICE=192.168.0.235
+make logs DEVICE=palazzetti.local
+```
+
+`make upload` uploads the already compiled image; rebuild after changing source
+or YAML. Alternatively, `esphome run example/palazzetti-ecofire-lara.yaml
+--device palazzetti.local` builds, uploads and then follows logs.
+Use the same ignored secrets file: native OTA uses **`ota_password`**, whereas
+Home Assistant/network logs use **`api_key`** and HTTP uses web credentials.
+ESPHome reads those automatically; do not paste passwords into CLI arguments.
+The IP above is a deployment example and can change with DHCP.
+
+OTA requires reachable Wi-Fi (ESP8266 supports **2.4 GHz only**) and sufficient
+firmware space. It does not require a stove/HAT connection or UART pins.
+It updates the ESP, not stove firmware. Normal OTA preserves the uploaded
+LittleFS maps; runtime cache/overrides reset on reboot. Keep power stable during
+an update, and retain USB recovery access. Do not expose OTA/HTTP/lab ports to
+the Internet.
+
+Serial pin routing and the separate TX-only debug UART are explained in the
+[adapter guide](adapter.md#3-uart0-before-and-after-serialswap).
+
 ## 3. Configuration
 
 The example is split in three packages:

@@ -66,8 +66,8 @@ not a new proposed rewiring.
 
 GPIO assignments describe **signals**, not the physical orientation of a custom
 socket. Do not infer direction from the green wire, USB end, diode position or
-another adapter's diagram. The owner's saved diode/resistor/NPN drawing differs
-from the reference MOSFET circuit in [adapter.md](adapter.md).
+another adapter's diagram. The owner's saved diode/resistor/NPN drawing and the conflicting MOSFET reference
+are compared in [adapter.md](adapter.md).
 
 With **USB, stove cable and every other supply disconnected**, establish which
 HAT socket contacts connect to its signal ground, supply, transmit input and

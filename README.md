@@ -39,7 +39,7 @@ The atlas is generated from the public map profiles, without private captures.
 |---|---|
 | [boards.md](docs/boards.md) | Micronova vs Fumis controller boards: which one the Lara has, which one is implemented, how to check |
 | [hardware.md](docs/hardware.md) | ESP8266 board, pinout, stove connector, wiring, assembly |
-| [adapter.md](docs/adapter.md) | the 1-wire ⇄ TX/RX adapter: schematic, operation, measurements |
+| [adapter.md](docs/adapter.md) | owner's diode/10 kΩ/NPN adapter versus MOSFET reference; UART swap and TX-only debug |
 | [protocol.md](docs/protocol.md) | Micronova serial protocol: RAM/EEPROM read/write frames, checksum, timing, stove variants |
 | [memory-map.md](docs/memory-map.md) | generated RAM/EEPROM map: common vs stove-specific addresses, status of each entry |
 | [RAM hex map](docs/memory-ram.html) / [EEPROM hex map](docs/memory-eeprom.html) | offline interactive bytes, regions and struct members; profile selection, hover details and historical value evolution |
@@ -75,6 +75,10 @@ then use OTA and Wi-Fi logs. Browse `http://palazzetti.local/` for the authentic
 ESPHome dashboard. Its Lara settings and schedule bytes are read-only: no confirmed
 on/off command or safe write rule exists yet. Separate boot-disabled write/EEPROM switches
 never bypass the address/value allowlist.
+
+Keep the device hostname **`palazzetti`**: rebuild with `make build`, then upload
+over Wi-Fi with `make upload DEVICE=palazzetti.local`. See
+[OTA and device naming](docs/esphome.md#21-ota-and-device-name).
 
 The device-hosted [uploaded-map dashboard](docs/esphome.md#37-uploaded-map-dashboard) at
 `http://palazzetti.local/memory` uses plain JSON files instead of firmware-specific UI code.

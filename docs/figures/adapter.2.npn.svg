@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560">
+  <defs>
+    <style>
+      text{font-family:Helvetica,Arial,sans-serif;fill:#263746}
+      .title{font-size:23px;font-weight:bold}.label{font-size:17px}.small{font-size:14px}
+      .wire{fill:none;stroke:#3498DB;stroke-width:3}
+      .bus{fill:none;stroke:#E67E22;stroke-width:3}
+      .receive{fill:none;stroke:#9B59B6;stroke-width:3}
+      .part{fill:white;stroke:#263746;stroke-width:2}
+      .warning{font-size:16px;fill:#a93226}
+    </style>
+  </defs>
+  <rect width="1000" height="560" fill="#fff"/>
+  <text x="40" y="42" class="title">Retained diode / 10 kOhm / NPN topology</text>
+  <text x="40" y="72" class="small">Net-level reconstruction only: power rails and RX bias are missing from the original drawing.</text>
+  <text x="40" y="158" class="label">Stove BUS</text>
+  <text x="40" y="181" class="small">shared Tx/Rx</text>
+  <path d="M160 150 H340" class="bus"/>
+  <circle cx="230" cy="150" r="5" fill="#E67E22"/>
+  <path d="M340 132 L370 150 L340 168 Z" class="part"/>
+  <path d="M374 129 V171" class="wire"/>
+  <path d="M374 150 H860" class="wire"/>
+  <text x="336" y="114" class="label">D1: part unknown</text>
+  <text x="385" y="183" class="small">Cathode (bar) at TX</text>
+  <text x="750" y="128" class="label">TX = D8 / GPIO15</text>
+  <circle cx="550" cy="150" r="5" fill="#3498DB"/>
+  <path d="M550 150 V218 M550 282 V330" class="wire"/>
+  <rect x="537" y="218" width="26" height="64" class="part"/>
+  <text x="590" y="247" class="label">R1 = 10 kOhm</text>
+  <text x="590" y="272" class="small">TX to base; not an RX voltage divider</text>
+  <path d="M495 330 H605" stroke="#263746" stroke-width="4"/>
+  <path d="M515 330 L445 410 H230 V150" class="bus"/>
+  <path d="M585 330 L655 410 H860" class="receive"/>
+  <path d="M471 381 L479 359 L494 373 Z" fill="#E67E22"/>
+  <text x="345" y="370" class="label">E (arrow-side)</text>
+  <text x="562" y="316" class="label">B</text>
+  <text x="650" y="375" class="label">C</text>
+  <text x="748" y="440" class="label">RX = D7 / GPIO13</text>
+  <text x="430" y="452" class="label">Q1: NPN, part unknown</text>
+  <text x="40" y="505" class="warning">Not a complete build schematic: do not infer supply, ground, physical leads or HAT orientation.</text>
+  <text x="40" y="535" class="small">If appropriately biased elsewhere, collector RX is intended to follow bus polarity; verify on the bench.</text>
+</svg>

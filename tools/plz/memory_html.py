@@ -107,6 +107,7 @@ def region(field: dict, base: int = 0, inherited: dict | None = None) -> dict:
         child = region(member, addr, {
             "status": field["status"], "sources": field.get("sources", []),
             "mem": field["mem"], "access": field.get("access", "r"),
+            "category": field.get("category", "Unclassified"),
         })
         if child["addr"] < addr or child["addr"] + child["width"] > addr + width:
             raise ValueError(f"Member {child['id']} outside {field['id']}")

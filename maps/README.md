@@ -35,6 +35,7 @@ a different address space and have no map here; see [boards.md](../docs/boards.m
 | `addr` | required | address (0x0000–0x1FFF) |
 | `count` | 1 | number of consecutive bytes for a block (documented only, no entity generated) |
 | `name` | from `id` | entity / documentation name (no `/`) |
+| `category` | `Unclassified` | explicit atlas grouping: state, temperatures, combustion, user settings, clock/scheduling, service parameters or identification/constants |
 | `unit` | | unit of measurement |
 | `scale`, `offset` | 1, 0 | displayed = raw × scale + offset |
 | `encoding` | `uint8` | `uint8`, `int8`, `bcd`, `uint16_be`, `uint16_le`, `int16_be`, `int16_le` |
@@ -48,7 +49,7 @@ a different address space and have no map here; see [boards.md](../docs/boards.m
 | `notes` | | free text: observations, ranges, caveats |
 | `members` | | nested fields inside a block, used by the HTML viewer; each has `id`, `byte_offset` relative to its parent, optional `count`, `members`, and the usual descriptive keys |
 
-Members inherit their parent's memory, evidence status and source keys unless overridden.
+Members inherit their parent's memory, evidence status, category and source keys unless overridden.
 `byte_offset` is the position inside a structure; `offset` remains the arithmetic
 offset in the value conversion. Unassigned bytes stay unknown. Structure boundaries and
 member meanings have the same evidence requirements as standalone fields. Nested members
@@ -66,9 +67,25 @@ never insert guessed addresses. Runtime RAM and EEPROM permission gates still ap
 ## Interactive maps and historical captures
 
 Open the two HTML pages directly in a browser; they need no server, network or external assets.
-Select the board profile before interpreting a byte. Hover/focus shows a description; click pins
-the details, and Escape unpins them. Arrow keys navigate. Regions, nested members, overlapping
+Select the board profile before interpreting a byte. The three panels are a searchable field
+catalogue (A–Z or categories), the byte grid, and click-only details. Hover/focus highlights a
+region across the list and grid without replacing details. Click or Enter selects it:
+white outlines show selection, gold insets show hover, including when they overlap.
+Escape clears selection. Arrow keys navigate the grid. Regions, nested members, overlapping
 annotations, enums, scales, evidence statuses and sources are preserved.
+
+Without a capture, cell text shows the **low byte of the address** (00–FF), not invented
+memory contents; row labels give the full address. Category backgrounds show layout,
+bottom-border colors show evidence status, and unmapped cells are muted.
+Selecting a capture switches to hex values; a dot means no valid sample. The cell-content
+selector can return to address layout while retaining the selected capture.
+
+The Lara map includes the secondary P/V RAM copies at `47`/`46`, the model-code
+candidate at `0D`, historical constant-block members and additional addresses of interest.
+Unknown meanings remain unknown; historical constants are not factory defaults.
+The forum variant now exposes PG00–PG15, PF00–PF20, P100–P102 and individual schedule
+members from its source table. Those **reported** addresses and formulas are not Lara
+settings. Unassigned slots are not given invented member meanings.
 
 `make gen` regenerates both public pages from YAML only, without private captures.
 Historical logs are in the private reverse-engineering repository. For a local private atlas:
@@ -84,7 +101,7 @@ capture-bearing output to the public repository.
 A byte's displayed value is its last valid read, **not** a coherent
 snapshot. Details include exact sample/change counts and distributions, rejection counts,
 timestamps and a downsampled evolution plot. No EEPROM capture was supplied: its page shows
-layout annotations, with `??` for actual values.
+address-layout annotations, not actual values.
 
 To use your own captures:
 

@@ -33,6 +33,7 @@ Where each profile places a parameter (`—` absent, ~~struck~~ refuted).
 | clock_weekday | — | ram 0x64 | — | — | ram 0x60 |
 | clock_hour | — | ram 0x65 | — | — | ram 0x5F |
 | clock_minute | — | ram 0x66 | — | — | ram 0x5E |
+| board_model | — | — | — | ram 0x0D | ram 0x0D |
 
 ## Micronova (generic, community consensus)
 
@@ -94,9 +95,9 @@ Profile `micronova-forum`, extends `micronova-common`.
 
 | Address | Dec | Name | Unit | Scale | Values | Access | Status | Write certainty | Sources | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 0x00–0x25 |  | Technical parameters PG00–PG15 / PF00–PF20 |  |  |  | rw | reported | unverified | forum |  |
+| 0x00–0x25 |  | Technical parameters PG00–PG15 / PF00–PF20 |  |  |  | rw | reported | unverified | forum | Third-party parameter table only, not Lara settings. Address 16 is unassigned in the source. Conversion units not explicitly established for every row. |
 | 0x36–0x38 | 54 | User parameters P100–P102 |  |  |  | rw | reported | unverified | forum |  |
-| 0x4C–0x73 | 76 | Chrono programs 1–4 (start/stop in minutes ÷ 10, day flags) |  |  |  | rw | reported | unverified | forum |  |
+| 0x4C–0x73 | 76 | Chrono programs 1–4 (start/stop in minutes ÷ 10, day flags) |  |  |  | rw | reported | unverified | forum | Third-party layout; not the tentative six-triplet Lara layout. Slots at decimal 86, 96 and 106 are unassigned in the table. Day-flag values other than 0/1 are not established. |
 | 0x7D | 125 | Thermostat set point | °C |  |  | rw | reported | unverified | forum |  |
 | 0x7F | 127 | Power level setting |  |  |  | rw | reported | unverified | forum |  |
 
@@ -178,10 +179,12 @@ Profile `palazzetti-ecofire-lara`.
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0x01 | 1 | Generic Micronova room temperature |  |  |  | r | refuted | unverified | dump-2020 | Changes on almost every scan (0–84); looks like a fast counter or raw ADC value. |
 | 0x02 | 2 | Unknown, ignition related |  |  |  | r | hypothesis | unverified | notes-2020, dump-2020 | 255 off, 12–68 during ignition, 68 while working. |
+| 0x06 | 6 | Transition-related byte 06 |  |  |  | r | unknown | unverified | notes-2020 | Historical readings mostly 10, with 0 near on/off events. Meaning and causal role unknown. |
 | 0x09 | 9 | Countdown after switch off |  |  |  | r | observed | unverified | notes-2020, dump-2020 | 0 while running, counts 10→0 during final cleaning, 255 when off. |
 | 0x0D | 13 | Generic Micronova auger time |  |  |  | r | unknown | unverified | dump-2020 | Constant 232 for 47 h, so not a live auger time here. Likely the board/model code read by the Connection Box (see palazzetti-connbox). |
+| 0x0D | 13 | Board / model code candidate |  |  |  | r | hypothesis | unverified | dump-2020, connbox-2020 | Constant 232 (0xE8) in the Lara capture. Connection Box notes read this address to select a model branch; the Lara branch and board identity remain unverified. |
 | 0x21 | 33 | Generic Micronova stove state |  |  |  | r | refuted | unverified | dump-2020 | Constant 5 during the whole dump, including on/off cycles. Do not use the generic on/off writes here. |
-| 0x23–0x2F | 35 | Constant block 43 20 10 60 20 80 159 145 145 145 145 11 5 |  |  |  | r | observed | unverified | notes-2020 |  |
+| 0x23–0x2F | 35 | Constant block 43 20 10 60 20 80 159 145 145 145 145 11 5 |  |  |  | r | observed | unverified | notes-2020 | Historical constant readings only; not defaults or a verified parameter structure. Individual meanings remain unknown. |
 | 0x30 | 48 | 0–59 counter (one cycle per hour), frozen when off |  |  |  | r | observed | unverified | notes-2020 |  |
 | 0x32 | 50 | 120→0 counter, restarts every two hours |  |  |  | r | observed | unverified | notes-2020, dump-2020 |  |
 | 0x34 | 52 | Generic Micronova power |  |  |  | r | refuted | unverified | dump-2020 | Oscillates 2–11 in every state, 10 when off. |
@@ -194,18 +197,24 @@ Profile `palazzetti-ecofire-lara`.
 | 0x3F | 63 | Actual power level |  |  |  | r | observed | unverified | notes-2020, dump-2020 | 0 off, 2 during ignition, 1–4 while working. |
 | 0x42 | 66 | Fumes temperature | °C |  |  | r | observed | unverified | notes-2020, dump-2020, dump-2020-02-08 | 12–58 °C off, 68–133 °C working in the later capture. In the February 8 capture, 25–124 (23 distinct values). RAM 0x4B tracks this value; sequential polling can differ while temperature changes, so it is not an atomic mirror. |
 | 0x44 | 68 | Power related level |  |  |  | r | hypothesis | unverified | dump-2020 | 0 off, 0–2 ignition, 2–4 working. |
+| 0x46 | 70 | Ambient fan setting V (secondary RAM copy) |  |  |  | r | observed | unverified | notes-2020 | Historical panel observations identify this alongside RAM 0x66. No independently verified write operation. |
+| 0x47 | 71 | Power setting P (secondary RAM copy) |  |  |  | r | observed | unverified | notes-2020 | Historical panel observations identify this alongside RAM 0x65. Exact synchronization and encoding require a new targeted capture. |
 | 0x49 | 73 | Room temperature | °C |  |  | r | hypothesis | unverified | dump-2020, dump-2020-02-08 | 19–27 °C, slow, rises while the stove works. February 8 capture: 21–27, 6 distinct values; this supports temperature-like evolution but does not identify the probe. |
 | 0x4A | 74 | Temperature (board or ambient probe close to the stove) | °C |  |  | r | hypothesis | unverified | notes-2020, dump-2020, dump-2020-02-08 | 20–24 °C off, up to 36 °C while working. February 8 capture: 24–34, 7 distinct values; probe identity remains unverified. |
 | 0x4B | 75 | Fumes temperature (copy) | °C |  |  | r | observed | unverified | dump-2020 |  |
 | 0x4E | 78 | Phase sub-step |  |  |  | r | hypothesis | unverified | dump-2020 | 0 off, 1–3 during ignition, 4 while working (6 briefly), 6 during final cleaning (η² 0.99 with 0xF9). |
+| 0x59 | 89 | Repeating countdown candidate 59 |  |  |  | r | hypothesis | unverified | notes-2020 | Historical notes describe 10 (sometimes 9) while running, and repeated 1–10 decreases after shutdown. Unit and purpose unknown. |
 | 0x5A | 90 | Generic Micronova fumes temperature |  |  |  | r | refuted | unverified | dump-2020 | Not a temperature on the Lara: 63 (0b00111111) when off, 255 while running, a few 191/127. Looks like a bit field (outputs or flags). The 2020 notes saw "high values, 0 after off". |
 | 0x5A | 90 | Running flags (bit field?) |  |  |  | r | hypothesis | unverified | notes-2020, dump-2020 |  |
 | 0x5E | 94 | Clock, minutes |  | bcd |  | r | observed | unverified | notes-2020, dump-2020 |  |
 | 0x5F | 95 | Clock, hours |  | bcd |  | r | observed | unverified | notes-2020, dump-2020 |  |
 | 0x60 | 96 | Clock, day of week |  |  | 0=sunday, 1=monday, 2=tuesday, 3=wednesday, 4=thursday, 5=friday, 6=saturday | r | observed | unverified | notes-2020, dump-2020 | Read 1 on Monday 2020-02-10 and 2 on Tuesday, as expected. |
+| 0x61 | 97 | Midnight-related byte 61 |  |  |  | r | unknown | unverified | notes-2020 | A historical observation recorded 7 changing to 0 at midnight. Not enough evidence to identify a clock field. |
+| 0x62 | 98 | Transition-related byte 62 |  |  |  | r | unknown | unverified | notes-2020 | Historical readings 48 and 32, affected by power-off. Meaning unknown. |
 | 0x65 | 101 | Power setting P (RAM copy) |  |  |  | r | observed | unverified | notes-2020, dump-2020 | Follows P on the panel (0 = auto). RAM 0x47 also follows P. Constant 0 in the dump. |
 | 0x66 | 102 | Ambient fan setting V (RAM copy) |  |  | 0=auto, 1=1, 2=2, 3=3, 4=4, 5=5 | r | observed | unverified | notes-2020, dump-2020 | RAM 0x46 also follows V. Constant 0 in the dump. |
 | 0x67 | 103 | Target temperature (RAM copy) | °C |  |  | r | hypothesis | unverified | notes-2020, dump-2020 | Constant 26 in the dump, matching EEPROM 78 at that time. |
+| 0x68 | 104 | Time-event candidate 68 |  |  |  | r | unknown | unverified | notes-2020 | Historical readings 0 or 76 near a noted evening event. No verified schedule or time encoding. |
 | 0x6B | 107 | Hours and tens of minutes |  |  |  | r | observed | unverified | notes-2020 | BCD-like, increments every 10 minutes. |
 | 0x6C | 108 | Phase step / sequencer position |  |  |  | r | hypothesis | unverified | notes-2020, dump-2020 | 1 when off, 24–26 during ignition, 32–33 while working, 39/45/50 during final cleaning. |
 | 0xD0 | 208 | Unknown D0, follows on/off |  |  |  | r | unknown | unverified | dump-2020 | Mostly 8 when off, 88–90 during final cleaning, 56–90 while working. Pairs with 0xD2. |
@@ -213,6 +222,7 @@ Profile `palazzetti-ecofire-lara`.
 | 0xF0 | 240 | Unknown, follows on/off |  |  |  | r | observed | unverified | notes-2020, dump-2020 | 0 off, 103 running. |
 | 0xF1 | 241 | Unknown analog value, follows on/off |  |  |  | r | observed | unverified | notes-2020, dump-2020 | 83 running, 215–230 off (slow drift). |
 | 0xF5 | 245 | Unknown, follows on/off |  |  |  | r | observed | unverified | notes-2020, dump-2020 | 2 off, 63 running. |
+| 0xF7 | 247 | Alternating byte F7 |  |  |  | r | unknown | unverified | notes-2020 | Historical readings alternate 0xFE and 0xFF. No bit meaning established. |
 | 0xF9 | 249 | Power state |  |  | 0x1A=off, 0x2B=ignition, 0x4B=working, 0x1D=final cleaning | r | observed | unverified | notes-2020, dump-2020 | Ignition lasts ~20 min, final cleaning ~10 min. All four cycles of the dump follow off → ignition → working → final cleaning → off. |
 | 0xFA | 250 | Power state (secondary) |  |  | 0x32=off, 0x35=ignition or working, 0x3B=final cleaning | r | observed | unverified | notes-2020, dump-2020 |  |
 | 0xFB | 251 | Unknown, follows on/off |  |  |  | r | observed | unverified | notes-2020, dump-2020 |  |
@@ -221,7 +231,7 @@ Profile `palazzetti-ecofire-lara`.
 
 | Address | Dec | Name | Unit | Scale | Values | Access | Status | Write certainty | Sources | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 0x3B–0x4C | 59 | Chrono programs 1–6, 3 bytes each (start, stop, days) |  |  |  | rw | hypothesis | unverified | notes-2020 | Triplet layout and start/stop byte encoding not decoded yet; EEPROM 62 went 0x43→0x42 and 63 went 0x54→0x57 while editing a program. |
+| 0x3B–0x4C | 59 | Chrono programs 1–6, 3 bytes each (start, stop, days) |  |  |  | rw | hypothesis | unverified | notes-2020 | Triplet layout and start/stop byte encoding not decoded yet; EEPROM 62 went 0x43→0x42 and 63 went 0x54→0x57 while editing a program. Tentative region ends at 0x4C, overlapping the observed power setting; the six-triplet boundary is not established. |
 | 0x3D | 61 | Program 1 day selection |  |  | 0=week, 1=mon-fri, 2=sat-sun, 3=monday, 4=tuesday, 5=wednesday, 6=thursday, 7=friday, 8=saturday, 9=sunday | rw | observed | unverified | notes-2020 |  |
 | 0x4C | 76 | Power setting P |  |  | 0=auto, 1=1, 2=2, 3=3, 4=4 | rw | observed | unverified | notes-2020 |  |
 | 0x4D | 77 | Ambient fan setting V |  |  | 0=auto, 1=1, 2=2, 3=3, 4=4, 5=5 | rw | observed | unverified | notes-2020 |  |
@@ -229,6 +239,7 @@ Profile `palazzetti-ecofire-lara`.
 
 Sources:
 
+- `connbox-2020`: Connection Box disassembly notes (2020), private repo notes/2020-palazzetti-repo/COMMANDS; model branch not verified on Lara
 - `notes-2020`: Manual observations (2020), private repo notes/2020-palazzetti-repo
 - `dump-2020`: RAM capture 2020-02-10..12, private repo dumps/2020-02-10-ram
 - `dump-2020-02-08`: Timestamped RAM polling in private reverse repo legacy/2020-backup/out2 (2020-02-08, 1.76 h); successful callbacks only, raw checksums unavailable

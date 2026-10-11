@@ -35,42 +35,49 @@ fields:
     status: reported
     sources: [forum]
   - id: clock_weekday
+    category: Clock & scheduling
     mem: ram
     addr: 100
     name: Clock, day of week
     status: reported
     sources: [forum]
   - id: clock_hour
+    category: Clock & scheduling
     mem: ram
     addr: 101
     name: Clock, hours
     status: reported
     sources: [forum]
   - id: clock_minute
+    category: Clock & scheduling
     mem: ram
     addr: 102
     name: Clock, minutes
     status: reported
     sources: [forum]
   - id: clock_day
+    category: Clock & scheduling
     mem: ram
     addr: 103
     name: Clock, day of month
     status: reported
     sources: [forum]
   - id: clock_month
+    category: Clock & scheduling
     mem: ram
     addr: 104
     name: Clock, month
     status: reported
     sources: [forum]
   - id: clock_year
+    category: Clock & scheduling
     mem: ram
     addr: 105
     name: Clock, year (since 2000)
     status: reported
     sources: [forum]
   - id: intake_air_temperature
+    category: Temperatures
     mem: ram
     addr: 115
     name: Intake air temperature
@@ -78,6 +85,7 @@ fields:
     status: reported
     sources: [forum]
   - id: technical_parameters
+    category: Service parameters
     mem: eeprom
     addr: 0
     count: 38
@@ -85,7 +93,47 @@ fields:
     access: rw
     status: reported
     sources: [forum]
+    notes: Third-party parameter table only, not Lara settings. Address 16 is unassigned in the source. Conversion units not explicitly established for every row.
+    members:
+      - {id: pg00, name: PG00 cleaning interval, byte_offset: 0}
+      - {id: pg01, name: PG01 ignition auger, byte_offset: 1, scale: 25}
+      - {id: pg02, name: PG02 starting auger, byte_offset: 2, scale: 25}
+      - {id: pg03, name: PG03 auger P1, byte_offset: 3, scale: 25}
+      - {id: pg04, name: PG04 auger P5, byte_offset: 4, scale: 25}
+      - {id: pg05, name: PG05 ignition fumes, byte_offset: 5, scale: 10, offset: 250}
+      - {id: pg06, name: PG06 starting fumes, byte_offset: 6, scale: 10, offset: 250}
+      - {id: pg07, name: PG07 fumes P1, byte_offset: 7, scale: 10, offset: 250}
+      - {id: pg08, name: PG08 fumes P5, byte_offset: 8, scale: 10, offset: 250}
+      - {id: pg09, name: PG09 air P1, byte_offset: 9, scale: 5, offset: 60}
+      - {id: pg10, name: PG10 air P5, byte_offset: 10, scale: 5, offset: 60}
+      - {id: pg11, name: PG11 air shutdown, byte_offset: 11, scale: 5, offset: 60}
+      - {id: pg12, name: PG12 air threshold, byte_offset: 12, offset: 30}
+      - {id: pg13, name: PG13 compensation threshold, byte_offset: 13, offset: 30}
+      - {id: pg14, name: PG14 delta T off, byte_offset: 14}
+      - {id: pg15, name: PG15 delta T on, byte_offset: 15}
+      - {id: pf00, name: PF00 start time, byte_offset: 17}
+      - {id: pf01, name: PF01 ignition time, byte_offset: 18}
+      - {id: pf02, name: PF02 starting time, byte_offset: 19}
+      - {id: pf03, name: PF03 ignition pre-charge, byte_offset: 20}
+      - {id: pf04, name: PF04 fumes modulation, byte_offset: 21, offset: 30}
+      - {id: pf05, name: PF05 tank modulation, byte_offset: 22, offset: 30}
+      - {id: pf06, name: PF06 threshold 1, byte_offset: 23, offset: 30}
+      - {id: pf07, name: PF07 threshold 2, byte_offset: 24, offset: 30}
+      - {id: pf08, name: PF08 on/off threshold, byte_offset: 25, offset: 30}
+      - {id: pf09, name: PF09 power change, byte_offset: 26}
+      - {id: pf10, name: PF10 P1/P2 delay, byte_offset: 27}
+      - {id: pf11, name: PF11 cleaning duration, byte_offset: 28}
+      - {id: pf12, name: PF12 cleaning fumes, byte_offset: 29, scale: 10, offset: 250}
+      - {id: pf13, name: PF13 cleaning auger, byte_offset: 30, scale: 25}
+      - {id: pf14, name: PF14 cleaning excluded, byte_offset: 31}
+      - {id: pf15, name: PF15 starting fumes, byte_offset: 32, scale: 10, offset: 250}
+      - {id: pf16, name: PF16 extinguishing fumes, byte_offset: 33, scale: 10, offset: 250}
+      - {id: pf17, name: PF17 alarm fumes, byte_offset: 34, scale: 10, offset: 250}
+      - {id: pf18, name: PF18 alarm air, byte_offset: 35, scale: 5, offset: 60}
+      - {id: pf19, name: PF19 waiting flame, byte_offset: 36}
+      - {id: pf20, name: PF20 waiting-flame aspiration, byte_offset: 37, scale: 10, offset: 250}
   - id: user_parameters
+    category: User settings
     mem: eeprom
     addr: 54
     count: 3
@@ -93,7 +141,12 @@ fields:
     access: rw
     status: reported
     sources: [forum]
+    members:
+      - {id: p100, name: P100 auger variation, byte_offset: 0, scale: 5, offset: -45}
+      - {id: p101, name: P101 suction variation, byte_offset: 1, scale: 5, offset: -45}
+      - {id: p102, name: P102 flow variation, byte_offset: 2, scale: 5, offset: -45}
   - id: chrono
+    category: Clock & scheduling
     mem: eeprom
     addr: 76
     count: 40
@@ -101,6 +154,65 @@ fields:
     access: rw
     status: reported
     sources: [forum]
+    notes: Third-party layout; not the tentative six-triplet Lara layout. Slots at decimal 86, 96 and 106 are unassigned in the table. Day-flag values other than 0/1 are not established.
+    members:
+      - {id: enabled, name: Chrono enabled, byte_offset: 0}
+      - id: program_1
+        name: Program 1
+        byte_offset: 1
+        count: 9
+        members:
+          - {id: start, name: Start time, byte_offset: 0, scale: 10, unit: min}
+          - {id: stop, name: Stop time, byte_offset: 1, scale: 10, unit: min}
+          - {id: monday, name: Monday flag, byte_offset: 2}
+          - {id: tuesday, name: Tuesday flag, byte_offset: 3}
+          - {id: wednesday, name: Wednesday flag, byte_offset: 4}
+          - {id: thursday, name: Thursday flag, byte_offset: 5}
+          - {id: friday, name: Friday flag, byte_offset: 6}
+          - {id: saturday, name: Saturday flag, byte_offset: 7}
+          - {id: sunday, name: Sunday flag, byte_offset: 8}
+      - id: program_2
+        name: Program 2
+        byte_offset: 11
+        count: 9
+        members:
+          - {id: start, name: Start time, byte_offset: 0, scale: 10, unit: min}
+          - {id: stop, name: Stop time, byte_offset: 1, scale: 10, unit: min}
+          - {id: monday, name: Monday flag, byte_offset: 2}
+          - {id: tuesday, name: Tuesday flag, byte_offset: 3}
+          - {id: wednesday, name: Wednesday flag, byte_offset: 4}
+          - {id: thursday, name: Thursday flag, byte_offset: 5}
+          - {id: friday, name: Friday flag, byte_offset: 6}
+          - {id: saturday, name: Saturday flag, byte_offset: 7}
+          - {id: sunday, name: Sunday flag, byte_offset: 8}
+      - id: program_3
+        name: Program 3
+        byte_offset: 21
+        count: 9
+        members:
+          - {id: start, name: Start time, byte_offset: 0, scale: 10, unit: min}
+          - {id: stop, name: Stop time, byte_offset: 1, scale: 10, unit: min}
+          - {id: monday, name: Monday flag, byte_offset: 2}
+          - {id: tuesday, name: Tuesday flag, byte_offset: 3}
+          - {id: wednesday, name: Wednesday flag, byte_offset: 4}
+          - {id: thursday, name: Thursday flag, byte_offset: 5}
+          - {id: friday, name: Friday flag, byte_offset: 6}
+          - {id: saturday, name: Saturday flag, byte_offset: 7}
+          - {id: sunday, name: Sunday flag, byte_offset: 8}
+      - id: program_4
+        name: Program 4
+        byte_offset: 31
+        count: 9
+        members:
+          - {id: start, name: Start time, byte_offset: 0, scale: 10, unit: min}
+          - {id: stop, name: Stop time, byte_offset: 1, scale: 10, unit: min}
+          - {id: monday, name: Monday flag, byte_offset: 2}
+          - {id: tuesday, name: Tuesday flag, byte_offset: 3}
+          - {id: wednesday, name: Wednesday flag, byte_offset: 4}
+          - {id: thursday, name: Thursday flag, byte_offset: 5}
+          - {id: friday, name: Friday flag, byte_offset: 6}
+          - {id: saturday, name: Saturday flag, byte_offset: 7}
+          - {id: sunday, name: Sunday flag, byte_offset: 8}
   - id: target_temperature
     mem: eeprom
     addr: 125

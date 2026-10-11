@@ -6,17 +6,24 @@
 <style>
 :root{color-scheme:dark;--bg:#101722;--panel:#1b2636;--text:#e6edf3;--muted:#a8b5c5}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,sans-serif}
-header,main{max-width:1450px;margin:auto;padding:20px}a{color:#8ac7ff}h1{margin:8px 0}
+header,main{max-width:1700px;margin:auto;padding:20px}a{color:#8ac7ff}h1{margin:8px 0}
 .controls{display:flex;gap:15px;flex-wrap:wrap;align-items:end;margin:20px 0}label{display:grid;gap:5px}
 select,input,button{font:inherit;color:inherit;background:var(--panel);border:1px solid #536277;border-radius:5px;padding:8px}
-.layout{display:grid;grid-template-columns:minmax(440px,1fr) minmax(280px,420px);gap:22px}
+.layout{display:grid;grid-template-columns:minmax(220px,300px) minmax(590px,1fr) minmax(280px,380px);gap:18px}
+.catalogue{position:sticky;top:12px;align-self:start;max-height:90vh;overflow:auto;background:var(--panel);padding:12px;border-radius:8px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button[aria-selected=true]{background:#40526b}
+.field-entry{display:block;text-align:left;width:100%;margin:5px 0;border-left:4px solid var(--category,#536277)}
+.field-entry small{display:block;font-size:11px}.catalogue h3{font-size:14px}
 .dump-wrap{overflow:auto}.dump{border-collapse:separate;border-spacing:3px;font-family:ui-monospace,monospace}
 .dump th{color:var(--muted);font-size:12px;padding:5px}.dump td{padding:0}
-.byte{width:100%;min-width:33px;padding:7px 4px;border:1px solid #465269;background:#233043;border-radius:4px;font-family:inherit}
+.byte{width:100%;min-width:33px;padding:7px 4px;border:1px solid #465269;background:var(--category,#233043);border-radius:4px;font-family:inherit}
+.byte.layout-only{color:#c4cede}.byte.unmapped{color:#71839a;background:#172030}.byte.missing{color:#71839a}
 .confirmed{border-bottom:4px solid #2ecc71}.observed{border-bottom:4px solid #3498db}
 .reported{border-bottom:4px solid #a989db}.hypothesis{border-bottom:4px solid #e6a84c}
 .unknown{border-bottom:4px solid #95a5a6}.refuted{border-bottom:4px solid #ef7171}
-.selected,.byte:focus-visible{outline:2px solid white;background:#40526b}.dim{opacity:.25}
+.selected{outline:2px solid white;outline-offset:1px}
+.hovered{box-shadow:inset 0 0 0 2px #ffcf66}
+button:focus-visible{outline:2px dashed #ffcf66;outline-offset:3px}.dim{opacity:.25}
 .legend{display:flex;gap:10px;flex-wrap:wrap}.legend span{padding:4px 7px;background:var(--panel)}
 #details{position:sticky;top:12px;align-self:start;max-height:90vh;overflow:auto;padding:18px;background:var(--panel);border-radius:8px}
 .muted,small{color:var(--muted)}.field{border-top:1px solid #536277;padding:10px 0}.field p{margin:5px 0}
@@ -24,28 +31,41 @@ select,input,button{font:inherit;color:inherit;background:var(--panel);border:1p
 .plot{width:100%;height:100px;border:1px solid #536277}.plot polyline{fill:none;stroke:#8ac7ff;stroke-width:2}
 #tooltip{position:fixed;z-index:10;max-width:340px;padding:10px;border:1px solid #8196ac;border-radius:6px;background:#101722;pointer-events:none;white-space:pre-line;font:13px system-ui}
 [hidden]{display:none!important}.error{color:#ff9494}
-@media(max-width:850px){.layout{display:block}#details{position:static;max-height:none;margin-top:20px}header,main{padding:12px}}
+@media(max-width:1250px){.layout{grid-template-columns:240px minmax(590px,1fr)}#details{grid-column:1/-1;position:static;max-height:none}}
+@media(max-width:950px){.layout{display:block}.catalogue{position:static;max-height:320px;margin-bottom:20px}#details{margin-top:20px}header,main{padding:12px}}
 </style>
 <header>
 <nav><a href="https://github.com/jordanauge/palazzetti">Repository</a> · <a href="https://github.com/jordanauge/palazzetti/blob/main/docs/memory-map.md">Map documentation</a> ·
 <a href="memory-ram.html">RAM</a> · <a href="memory-eeprom.html">EEPROM</a></nav>
 <h1>__TITLE__</h1>
-<p>Read-only Micronova memory atlas. Hover or focus a byte for a quick description; click to pin its details.
-Multi-byte regions highlight together; members show their offset within the region.</p>
-<p class="muted">Unknown bytes are <code>??</code>, never fabricated zeroes. Capture bytes are each address's last
-valid observation, not a simultaneous snapshot. Failed reads are excluded. Generic profiles are not Lara maps.</p>
+<p>Read-only Micronova memory atlas. Browse fields alphabetically or by category. Hover or focus previews a region;
+only clicking a field or byte (or pressing Enter) populates details. White outline: selected. Gold inset: hovered.
+Escape clears selection. Multi-byte regions and their members are linked across all three panels.</p>
+<p class="muted">Layout cells show address offsets, not memory values. Category backgrounds identify mapped regions;
+bottom borders show evidence certainty. Unmapped cells are muted. In capture-value mode, a dot means no valid
+observation, never zero. Values are each address's last valid read, not a simultaneous snapshot.
+Generic profiles are not Lara maps.</p>
 <div class="controls">
 <label>Board profile<select id="profile"></select></label>
 <label>Capture<select id="capture"></select></label>
+<label>Cell content<select id="cell-mode"><option value="address">Address offsets (layout)</option><option value="value">Captured hex values</option></select></label>
 <label>Find field / address<input id="search" placeholder="temperature, chrono, 0xF9"></label>
 </div>
 <p id="coverage"></p><div id="legend" class="legend"></div>
+<p id="cell-caption" class="muted"></p><div id="categories" class="legend"></div>
 <noscript>This interactive map requires JavaScript. See the linked Markdown map for a text version.</noscript>
 <p id="error" class="error" role="alert" hidden></p>
 </header>
 <main class="layout">
+<aside class="catalogue" aria-label="Structures and fields">
+<h2>Structures &amp; fields</h2>
+<div class="tabs" role="tablist" aria-label="Field ordering">
+<button id="alpha-tab" role="tab" aria-selected="true" aria-controls="field-list">A–Z</button>
+<button id="category-tab" role="tab" aria-selected="false" aria-controls="field-list">Categories</button>
+</div><div id="field-list" role="tabpanel" aria-labelledby="alpha-tab"></div>
+</aside>
 <div class="dump-wrap"><table class="dump" aria-label="Memory bytes"><thead id="head"></thead><tbody id="grid"></tbody></table></div>
-<aside id="details" aria-live="polite"><h2>Inspect a byte</h2><p>Hover, focus or click the hex grid.</p></aside>
+<aside id="details" aria-live="polite"></aside>
 </main>
 <div id="tooltip" role="tooltip" hidden></div>
 <script id="map-data" type="application/json">__DATA__</script>
@@ -59,12 +79,66 @@ const text = (tag,value,parent,className) => {
   const node=document.createElement(tag); node.textContent=value;
   if(className)node.className=className; parent.append(node); return node;
 };
-let profile, capture, regions, buttons=[], pinned=null, size=256;
+const categoryColors={"State & phases":"#44345b","Temperatures":"#50392b","Combustion & fans":"#25464a",
+  "User settings":"#30446a","Clock & scheduling":"#39482c","Service parameters":"#4d3448",
+  "Identification & constants":"#3a3e48","Unclassified":"#233043"};
+const category = f => f.category||"Unclassified";
+const color = f => categoryColors[category(f)]||"#233043";
+let profile, capture, regions, buttons=[], entries=[], pinned=null, hovered=null, order="alpha", size=256;
 function flatten(fields,parents=[]){
-  return fields.flatMap(f=>[{...f,parents},...flatten(f.members,[...parents,f])]);
+  return fields.flatMap(f=>[{...f,parents,key:[...parents.map(p=>p.id),f.id].join(".")},...flatten(f.members,[...parents,f])]);
 }
 function fieldsAt(addr){return regions.filter(f=>addr>=f.addr && addr<f.addr+f.width);}
 function observation(addr){return capture?.bytes[data.memory+":"+addr];}
+function matchesFor(state){return state?(state.field?[state.field]:fieldsAt(state.addr)):[];}
+function highlight(){
+  for(const [state,cls] of [[pinned,"selected"],[hovered,"hovered"]]){
+    const matches=matchesFor(state);
+    buttons.forEach((b,i)=>b.classList.toggle(cls,!!state&&(i===state.addr||matches.some(f=>i>=f.addr&&i<f.addr+f.width))));
+    entries.forEach(({button,field})=>{
+      const active=matches.some(f=>f.key===field.key);
+      button.classList.toggle(cls,active);
+      if(cls==="selected")button.setAttribute("aria-pressed",String(active));
+    });
+  }
+}
+function preview(state){hovered=state;highlight();}
+function clearSelection(){
+  pinned=null;hovered=null;el("tooltip").hidden=true;highlight();
+  el("details").replaceChildren();
+  text("h2","Nothing selected",el("details"));
+  text("p","Click a field, structure or byte to inspect its meaning and evidence.",el("details"));
+}
+function select(addr,field=null){
+  pinned={addr,field};show(addr,field);highlight();
+}
+function catalogue(){
+  entries=[];el("field-list").replaceChildren();
+  const sorted=[...regions].sort((a,b)=>(a.name||a.id).localeCompare(b.name||b.id)||a.key.localeCompare(b.key));
+  const groups=order==="alpha"?[["",sorted]]:[...new Set(sorted.map(category))].sort().map(c=>[c,sorted.filter(f=>category(f)===c)]);
+  for(const [name,fields] of groups){
+    if(name)text("h3",name,el("field-list"));
+    for(const field of fields){
+      const button=text("button",field.name||field.id,el("field-list"),"field-entry "+field.status);
+      button.type="button";button.dataset.field=field.key;button.style.setProperty("--category",color(field));
+      text("small",`${field.width>1?"Region":"Field"} · ${hex(field.addr,4)} · ${field.status}`,button);
+      if(field.parents.length)text("small",field.parents.map(p=>p.name||p.id).join(" / "),button);
+      button.addEventListener("pointerenter",()=>preview({addr:field.addr,field}));
+      button.addEventListener("pointerleave",()=>preview(null));
+      button.addEventListener("focus",()=>preview({addr:field.addr,field}));
+      button.addEventListener("blur",()=>preview(null));
+      button.addEventListener("click",()=>{
+        select(field.addr,field);buttons[field.addr].scrollIntoView({block:"nearest",inline:"nearest"});
+      });
+      entries.push({button,field});
+    }
+  }
+  for(const mode of ["alpha","category"]){
+    el(mode+"-tab").setAttribute("aria-selected",String(order===mode));
+    el(mode+"-tab").tabIndex=order===mode?0:-1;
+  }
+  el("field-list").setAttribute("aria-labelledby",order+"-tab");highlight();filter();
+}
 function decoded(field){
   const values=Array.from({length:field.width},(_,i)=>observation(field.addr+i)?.last);
   if(values.some(v=>v===undefined))return "No complete valid value in this capture";
@@ -83,10 +157,10 @@ function decoded(field){
   const label=field.values?.[raw];
   return `Raw ${raw}; decoded ${scaled}${field.unit?" "+field.unit:""}${label?" ("+label+")":""}`;
 }
-function show(addr){
+function show(addr,field=null){
   const panel=el("details");panel.replaceChildren();
   text("h2",`${data.memory.toUpperCase()} ${hex(addr,4)} / ${addr}`,panel);
-  const matches=fieldsAt(addr), record=observation(addr);
+  const matches=field?[field]:fieldsAt(addr), record=observation(addr);
   if(!matches.length)text("p","Meaning unknown: no field mapped in this profile.",panel);
   for(const f of matches){
     const section=text("section","",panel,"field");
@@ -94,6 +168,7 @@ function show(addr){
     text("code",[...f.parents.map(p=>p.id),f.id].join("."),section);
     text("p",`${hex(f.addr,4)}–${hex(f.addr+f.width-1,4)} · ${f.width} byte(s) · byte +${addr-f.addr}`,section);
     text("p",`${f.status} · ${data.statuses[f.status]} · access ${f.access||"r"}`,section);
+    text("p",`Category: ${category(f)}`,section);
     text("p",`Write certainty: ${f.write_status||"unverified"}${f.mem==="eeprom"?" · persistent EEPROM; separate permission required":""}`,section);
     text("p",`Encoding ${f.encoding||"uint8"} · scale ${f.scale??1}${f.unit?" · "+f.unit:""}`,section);
     if(f.notes)text("p",f.notes,section);
@@ -122,14 +197,17 @@ function show(addr){
     text("small","Downsampled history; counts and value distributions use all valid observations.",section);
     text("pre",record.histogram.map(([v,n])=>`${hex(v)} (${v}): ${n} reads`).join("\n"),section);
   }
-  const related=matches.filter(f=>f.width>1);
-  buttons.forEach((b,i)=>b.classList.toggle("selected",i===addr||related.some(f=>i>=f.addr&&i<f.addr+f.width)));
 }
 function filter(){
   const q=el("search").value.trim().toLowerCase();
+  const address=/^0x[0-9a-f]+$/.test(q)?Number(q):null;
   buttons.forEach((b,addr)=>{
-    const content=[hex(addr,4),hex(addr),...fieldsAt(addr).flatMap(f=>[f.id,f.name,f.notes])].join(" ").toLowerCase();
-    b.classList.toggle("dim",!!q&&!content.includes(q));
+    const content=[hex(addr,4),hex(addr),...fieldsAt(addr).flatMap(f=>[f.key,f.name,f.notes,category(f)])].join(" ").toLowerCase();
+    b.classList.toggle("dim",!!q&&(address!==null?addr!==address:!content.includes(q)));
+  });
+  entries.forEach(({button,field})=>{
+    button.hidden=!!q&&(address!==null?!(address>=field.addr&&address<field.addr+field.width):
+      ![field.key,field.name,field.notes,category(field),...field.parents.map(p=>p.name||p.id)].join(" ").toLowerCase().includes(q));
   });
 }
 function tooltip(event,addr){
@@ -138,10 +216,10 @@ function tooltip(event,addr){
   el("tooltip").hidden=false;
   el("tooltip").style.left=Math.max(8,Math.min(event.clientX+12,window.innerWidth-350))+"px";
   el("tooltip").style.top=Math.max(8,Math.min(event.clientY+12,window.innerHeight-el("tooltip").offsetHeight-8))+"px";
-  if(pinned===null)show(addr);
+  preview({addr,field:null});
 }
 function rebuild(){
-  profile=data.profiles[Number(el("profile").value)];regions=flatten(profile.fields);pinned=null;
+  profile=data.profiles[Number(el("profile").value)];regions=flatten(profile.fields);
   const selected=el("capture").value;
   capture=selected===""?null:data.captures[Number(selected)];
   if(capture&&capture.profile!==profile.id)throw new Error("Capture/profile mismatch");
@@ -156,27 +234,39 @@ function rebuild(){
       const td=text("td","",tr), matches=fieldsAt(i);
       const status=matches.length?matches[matches.length-1].status:"unknown";
       const record=observation(i);
-      const b=text("button",record?.n?hex(record.last).slice(2):"??",td,"byte "+status);
+      const layout=el("cell-mode").value==="address", mapped=matches.some(f=>f.status!=="refuted");
+      const b=text("button",layout?hex(i&255).slice(2):record?.n?hex(record.last).slice(2):"·",td,
+        "byte "+status+(layout?" layout-only":"")+(!mapped?" unmapped":"")+(!layout&&!record?.n?" missing":""));
+      if(mapped)b.style.setProperty("--category",color(matches.filter(f=>f.status!=="refuted").at(-1)));
       b.type="button";b.dataset.address=i;
-      b.setAttribute("aria-label",`${hex(i,4)} ${matches.map(f=>f.name||f.id).join("; ")||"Unknown"}`);
+      b.setAttribute("aria-label",`${hex(i,4)} ${layout?"address offset":record?.n?"captured value "+hex(record.last):"no valid observation"}; ${matches.map(f=>f.name||f.id).join("; ")||"Unmapped"}`);
       b.addEventListener("pointermove",e=>tooltip(e,i));
-      b.addEventListener("pointerleave",()=>el("tooltip").hidden=true);
-      b.addEventListener("focus",()=>{if(pinned===null)show(i);});
-      b.addEventListener("click",()=>{pinned=i;show(i);});
+      b.addEventListener("pointerleave",()=>{el("tooltip").hidden=true;preview(null);});
+      b.addEventListener("focus",()=>preview({addr:i,field:null}));
+      b.addEventListener("blur",()=>preview(null));
+      b.addEventListener("click",()=>select(i));
       b.addEventListener("keydown",e=>{
         const step={ArrowLeft:-1,ArrowRight:1,ArrowUp:-16,ArrowDown:16}[e.key];
         if(step!==undefined){e.preventDefault();buttons[Math.max(0,Math.min(size-1,i+step))].focus();}
-        if(e.key==="Escape"){pinned=null;el("tooltip").hidden=true;}
       });
       buttons.push(b);
     }
     el("grid").append(tr);
   }
-  const known=buttons.filter((_,i)=>fieldsAt(i).some(f=>!["unknown","refuted"].includes(f.status))).length;
+  const annotated=buttons.filter((_,i)=>fieldsAt(i).length).length;
+  const supported=buttons.filter((_,i)=>fieldsAt(i).some(f=>["observed","confirmed"].includes(f.status))).length;
   const seen=buttons.filter((_,i)=>observation(i)?.n).length;
-  el("coverage").textContent=`${profile.title}: ${known}/${size} bytes annotated (including reported/hypothetical fields). `+
+  el("coverage").textContent=`${profile.title}: ${annotated}/${size} bytes annotated; ${supported} with observed/confirmed evidence. `+
+    `${regions.length} fields/regions, including hypotheses, unknowns and refutations. `+
     (capture?`${seen} bytes with accepted capture data; ${date(capture.first)} to ${date(capture.last)}. ${capture.notes||""}`:"No measured byte values selected.");
-  filter();show(0);
+  el("cell-caption").textContent=el("cell-mode").value==="address"
+    ?"Cell text = low byte of the address (00–FF), not a reading. Row labels give the full address."
+    :"Cell text = captured hex value; · = no valid reading. Mapping colors do not imply a measured value.";
+  el("categories").replaceChildren();
+  for(const c of [...new Set(regions.map(category))].sort()){
+    const span=text("span",c,el("categories"));span.style.background=categoryColors[c]||"#233043";
+  }
+  clearSelection();catalogue();
 }
 function chooseProfile(){
   el("capture").replaceChildren();
@@ -186,6 +276,8 @@ function chooseProfile(){
     const option=text("option",c.name,el("capture"));option.value=i;
   }});
   if(el("capture").options.length>1)el("capture").selectedIndex=1;
+  el("cell-mode").value=el("capture").value===""?"address":"value";
+  el("cell-mode").options[1].disabled=el("capture").value==="";
   rebuild();
 }
 function guarded(fn){return (...args)=>{try{el("error").hidden=true;fn(...args);}
@@ -195,7 +287,25 @@ for(const [status,help] of Object.entries(data.statuses)){
   const span=text("span",status,el("legend"),status);span.title=help;
 }
 el("profile").addEventListener("change",guarded(chooseProfile));
-el("capture").addEventListener("change",guarded(rebuild));
+el("capture").addEventListener("change",guarded(()=>{
+  el("cell-mode").value=el("capture").value===""?"address":"value";
+  el("cell-mode").options[1].disabled=el("capture").value==="";rebuild();
+}));
+el("cell-mode").addEventListener("change",guarded(()=>{
+  const selection=pinned;rebuild();
+  if(selection)select(selection.addr,selection.field?regions.find(f=>f.key===selection.field.key):null);
+}));
+for(const mode of ["alpha","category"]){
+  el(mode+"-tab").addEventListener("click",()=>{order=mode;catalogue();});
+  el(mode+"-tab").addEventListener("keydown",e=>{
+    if(["ArrowLeft","ArrowRight","Home","End"].includes(e.key)){
+      e.preventDefault();
+      const next=e.key==="Home"?"alpha":e.key==="End"?"category":mode==="alpha"?"category":"alpha";
+      el(next+"-tab").click();el(next+"-tab").focus();
+    }
+  });
+}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")clearSelection();});
 el("search").addEventListener("input",filter);
 guarded(chooseProfile)();
 </script>

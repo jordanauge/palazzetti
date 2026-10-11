@@ -11,6 +11,7 @@ sources:
   forum: Community table of a Micronova board (see micronova-forum.yaml)
 fields:
   - id: room_temperature
+    category: Temperatures
     mem: ram
     addr: 0x01
     name: Room temperature
@@ -19,6 +20,7 @@ fields:
     status: reported
     sources: [esphome-micronova, stufapellet]
   - id: water_temperature
+    category: Temperatures
     mem: ram
     addr: 0x03
     name: Water temperature (hydro stoves)
@@ -27,12 +29,14 @@ fields:
     status: reported
     sources: [esphome-micronova, stufapellet]
   - id: auger_time
+    category: Combustion & fans
     mem: ram
     addr: 0x0D
     name: Auger (screw) on-time
     status: reported
     sources: [forum]
   - id: status
+    category: State & phases
     mem: ram
     addr: 0x21
     name: Stove state
@@ -53,12 +57,14 @@ fields:
       10: undefined alarm
     notes: Writing 0x01 switches on, 0x06 switches off (frames 80 21 01 A2 / 80 21 06 A7).
   - id: power_actual
+    category: Combustion & fans
     mem: ram
     addr: 0x34
     name: Actual power level
     status: reported
     sources: [esphome-micronova, stufapellet]
   - id: fumes_fan_speed
+    category: Combustion & fans
     mem: ram
     addr: 0x37
     name: Fumes extractor speed
@@ -68,6 +74,7 @@ fields:
     sources: [esphome-micronova]
     notes: rpm = value × 10 + model specific offset (ESPHome `fan_rpm_offset`), 0 when stopped.
   - id: water_temperature_alt
+    category: Temperatures
     mem: ram
     addr: 0x3B
     name: Water temperature (alternate address)
@@ -76,6 +83,7 @@ fields:
     status: reported
     sources: [esphome-micronova]
   - id: water_pressure
+    category: Combustion & fans
     mem: ram
     addr: 0x3C
     name: Water pressure
@@ -84,6 +92,7 @@ fields:
     status: reported
     sources: [esphome-micronova]
   - id: fumes_temperature
+    category: Temperatures
     mem: ram
     addr: 0x5A
     name: Fumes temperature
@@ -91,6 +100,7 @@ fields:
     status: reported
     sources: [esphome-micronova, stufapellet]
   - id: target_temperature
+    category: User settings
     mem: eeprom
     addr: 0x7D
     name: Thermostat set point
@@ -99,6 +109,7 @@ fields:
     status: reported
     sources: [esphome-micronova]
   - id: power_setting
+    category: User settings
     mem: eeprom
     addr: 0x7F
     name: Power level setting

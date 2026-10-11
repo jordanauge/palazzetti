@@ -8,6 +8,7 @@ sources:
   connbox-2020: Connection Box firmware disassembly notes (2020), private repo notes/2020-palazzetti-repo/COMMANDS
 fields:
   - id: board_model
+    category: Identification & constants
     mem: ram
     addr: 0x0D
     name: Board / model code (selects the address set)
@@ -18,6 +19,7 @@ fields:
       On the Ecofire Lara it is constant 232 (0xE8) over 47 h, consistent with a model code
       rather than the generic Micronova auger time.
   - id: status
+    category: State & phases
     mem: ram
     addr: 0x21
     name: Stove state (target of SET STAT)
@@ -26,6 +28,7 @@ fields:
     sources: [connbox-2020]
     notes: Written by `SET STAT`. Constant 5 on the Lara, so the Lara likely uses another model branch.
   - id: power_level
+    category: Combustion & fans
     mem: ram
     addr: 0x37
     name: Power level (GET ALLS / GET POWR, model A)
@@ -33,18 +36,21 @@ fields:
     sources: [connbox-2020]
     notes: Noted with 0x64 for one model branch. On the Lara 0x37 behaves like the fumes extractor speed.
   - id: power_level_aux
+    category: Combustion & fans
     mem: ram
     addr: 0x64
     name: Power (GET ALLS, model A, companion of 0x37)
     status: reported
     sources: [connbox-2020]
   - id: power_level_b
+    category: Combustion & fans
     mem: ram
     addr: 0x97
     name: Power (GET ALLS, model B)
     status: reported
     sources: [connbox-2020]
   - id: power_level_b_aux
+    category: Combustion & fans
     mem: ram
     addr: 0x34
     name: Power (GET ALLS, model B, companion of 0x97)
@@ -52,6 +58,7 @@ fields:
     sources: [connbox-2020]
     notes: Same address as the generic Micronova power level.
   - id: target_temperature
+    category: User settings
     mem: ram
     addr: 0x36
     name: Target temperature (GET SETP, "0xB model")
@@ -60,6 +67,7 @@ fields:
     sources: [connbox-2020]
     notes: The note mentions bit shifts around the read (`srl`/`sra`), so the encoding may not be plain.
   - id: target_temperature_alt
+    category: User settings
     mem: ram
     addr: 0xA0
     name: Target temperature (GET SETP, other models)
@@ -67,6 +75,7 @@ fields:
     status: reported
     sources: [connbox-2020]
   - id: parameters
+    category: Service parameters
     mem: eeprom
     addr: 0x28
     count: 32

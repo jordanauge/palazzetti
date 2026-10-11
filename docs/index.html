@@ -9,14 +9,16 @@ a{color:#8ac7ff}.maps{display:flex;gap:20px;flex-wrap:wrap}.maps a{padding:20px;
 </style>
 <h1>Palazzetti memory atlas</h1>
 <p>Interactive, read-only RAM and EEPROM maps for Micronova controllers, including
-the Palazzetti Ecofire Lara. Select a board profile, then hover or focus bytes to
-inspect regions, structure members and their evidence.</p>
+the Palazzetti Ecofire Lara. Browse structures and fields alphabetically or by
+category; hover to highlight their bytes, click to select details and evidence.</p>
 <nav class="maps">
 <a href="memory-ram.html">RAM hex map</a>
 <a href="memory-eeprom.html">EEPROM hex map</a>
 </nav>
 <p>These pages contain derived mapping facts, not private memory dumps.
-An unknown byte displays <code>??</code>. Reported and hypothetical meanings
+Layout cells show address offsets, with category backgrounds and evidence borders;
+they are not measured byte values. Unmapped cells are muted. With a private capture,
+hex values replace the offsets and a dot marks missing valid data. Reported and hypothetical meanings
 are not verified manufacturer settings. Fumis boards use a different protocol.</p>
 <p>Writing an unverified byte can make a stove unsafe. The atlas does not write memory.</p>
 <p><a href="https://github.com/jordanauge/palazzetti">ESPHome code and documentation</a></p>

@@ -23,7 +23,7 @@ def test_render_all_profiles_and_overlapping_fields():
 def test_nested_members_and_distinct_conversion_offset():
     field = memory_html.region({
         "id": "program", "addr": 59, "count": 3, "mem": "eeprom",
-        "status": "hypothesis", "sources": ["notes"],
+        "status": "hypothesis", "sources": ["notes"], "category": "Clock & scheduling",
         "members": [{"id": "stop", "byte_offset": 1, "offset": 30, "scale": 10}],
     })
     member = field["members"][0]
@@ -31,6 +31,7 @@ def test_nested_members_and_distinct_conversion_offset():
     assert member["offset"] == 30
     assert member["sources"] == ["notes"]
     assert member["status"] == "hypothesis"
+    assert member["category"] == "Clock & scheduling"
     assert memory_html.field_width({"encoding": "uint16_le"}) == 2
     with pytest.raises(ValueError, match="outside"):
         memory_html.region({**field, "members": [{"id": "bad", "byte_offset": 3}]})
@@ -82,12 +83,37 @@ def test_generate_both_files(tmp_path):
     paths = memory_html.generate(tmp_path, ["palazzetti-ecofire-lara"], [], [],
                                  "palazzetti-ecofire-lara")
     assert [p.name for p in paths] == ["memory-ram.html", "memory-eeprom.html"]
-    assert all(p.is_file() and "??" in p.read_text() for p in paths)
+    assert all(p.is_file() and 'id="field-list"' in p.read_text()
+               and "<code>??</code>" not in p.read_text() for p in paths)
     eeprom = payload(paths[1].read_text())["profiles"][0]["fields"]
     chrono = next(f for f in eeprom if f["id"] == "chrono_programs")
     assert len(chrono["members"]) == 6
     assert chrono["members"][5]["addr"] == 74
     assert chrono["members"][0]["members"][2]["addr"] == 61
+
+
+def test_recovered_members_keep_addresses_conversions_and_evidence():
+    forum = payload(memory_html.render("eeprom", ["micronova-forum"]))["profiles"][0]
+    technical = next(f for f in forum["fields"] if f["id"] == "technical_parameters")
+    assert len(technical["members"]) == 37
+    assert 16 not in {f["addr"] for f in technical["members"]}
+    pg05 = next(f for f in technical["members"] if f["id"] == "pg05")
+    assert (pg05["addr"], pg05["scale"], pg05["offset"], pg05["status"]) == (5, 10, 250, "reported")
+    assert pg05["category"] == "Service parameters"
+    chrono = next(f for f in forum["fields"] if f["id"] == "chrono")
+    programs = [f for f in chrono["members"] if f["members"]]
+    assert [p["addr"] for p in programs] == [77, 87, 97, 107]
+    assert programs[-1]["members"][-1]["addr"] == 115
+    assert programs[0]["members"][0]["unit"] == "min"
+    lara = payload(memory_html.render("ram", ["palazzetti-ecofire-lara"]))["profiles"][0]
+    by_id = {f["id"]: f for f in lara["fields"]}
+    assert by_id["power_setting_ram_aux"]["addr"] == 0x47
+    assert by_id["fan_setting_ram_aux"]["addr"] == 0x46
+    assert by_id["board_model"]["status"] == "hypothesis"
+    assert by_id["midnight_0x61"]["status"] == "unknown"
+    constants = by_id["constants_0x23"]
+    assert len(constants["members"]) == 13
+    assert all(f["status"] == "unknown" for f in constants["members"])
 
 
 def test_public_atlas_excludes_private_captures(tmp_path):

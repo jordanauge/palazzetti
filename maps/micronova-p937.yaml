@@ -17,6 +17,7 @@ fields:
     status: reported
     sources: [p937]
   - id: probe_temperature
+    category: Temperatures
     mem: ram
     addr: 0x44
     name: Probe temperature
@@ -34,6 +35,7 @@ fields:
     status: reported
     sources: [p937]
   - id: fan_left_setting
+    category: User settings
     mem: eeprom
     addr: 0x81
     name: Left ambient fan setting
@@ -41,6 +43,7 @@ fields:
     status: reported
     sources: [p937]
   - id: fan_right_setting
+    category: User settings
     mem: eeprom
     addr: 0x82
     name: Right ambient fan setting

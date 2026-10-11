@@ -64,6 +64,31 @@ async function main() {
       assert.equal(await evaluate('document.getElementById("error").hidden'),true);
     }
     await open("ram");
+    assert.match(await evaluate('document.getElementById("details").textContent'),/Nothing selected/);
+    assert.equal(await evaluate('document.querySelector("[data-address=\'249\']").textContent'),"F9");
+    assert.equal(await evaluate('document.querySelector("[data-address=\'16\']").classList.contains("unmapped")'),true);
+    assert.equal(await evaluate('document.querySelector("[data-address=\'249\']").classList.contains("unmapped")'),false);
+    assert.equal(await evaluate('getComputedStyle(document.querySelector("[data-address=\'249\']")).backgroundColor===getComputedStyle(document.querySelector("[data-address=\'66\']")).backgroundColor'),false);
+    assert.equal(await evaluate(`const labels=entries.map(e=>e.field.name||e.field.id);
+      labels.every((label,i)=>i===0||labels[i-1].localeCompare(label)<=0)`),true);
+    await evaluate('document.querySelector("[data-field=\'power_setting_ram_aux\']").dispatchEvent(new PointerEvent("pointerenter"))');
+    assert.equal(await evaluate('document.querySelectorAll(".byte.hovered").length'),1);
+    assert.equal(await evaluate('document.querySelector("[data-address=\'71\']").classList.contains("hovered")'),true);
+    assert.match(await evaluate('document.getElementById("details").textContent'),/Nothing selected/);
+    await evaluate('document.querySelector("[data-field=\'power_setting_ram_aux\']").click()');
+    assert.match(await evaluate('document.getElementById("details").textContent'),/secondary RAM copy/);
+    const pinnedDetails=await evaluate('document.getElementById("details").textContent');
+    await evaluate('document.querySelector("[data-field=\'fumes_temperature\']").dispatchEvent(new PointerEvent("pointerenter"))');
+    assert.equal(await evaluate('document.querySelector("[data-address=\'71\']").classList.contains("selected")'),true);
+    assert.equal(await evaluate('document.querySelector("[data-address=\'66\']").classList.contains("hovered")'),true);
+    assert.equal(await evaluate('document.getElementById("details").textContent'),pinnedDetails);
+    await evaluate('document.getElementById("category-tab").click()');
+    assert.equal(await evaluate('document.getElementById("category-tab").getAttribute("aria-selected")'),"true");
+    assert.match(await evaluate('document.getElementById("field-list").textContent'),/User settings/);
+    assert.equal(await evaluate('document.querySelector("[data-field=\'power_setting_ram_aux\']").getAttribute("aria-pressed")'),"true");
+    await evaluate('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape"}))');
+    assert.equal(await evaluate('document.querySelectorAll(".selected").length'),0);
+    assert.equal(await evaluate('document.querySelectorAll(".hovered").length'),0);
     assert.equal(await evaluate('document.getElementById("capture").options.length'),1);
     await evaluate(`const profileId=data.profiles[0].id;
       const observed={n:1,last:26,min:26,max:26,changes:0,distinct:1,rejected:0,
@@ -73,11 +98,16 @@ async function main() {
         {name:"test rejected read",profile:profileId,first:1,last:1,bytes:{"ram:249":{n:0,rejected:25}}}
       );chooseProfile();`);
     assert.equal(await evaluate('document.getElementById("capture").options.length'),3);
+    assert.equal(await evaluate('document.querySelector("[data-address=\'249\']").textContent'),"1A");
+    await evaluate('document.querySelector("[data-field=\'power_state\']").click();document.getElementById("cell-mode").value="address";document.getElementById("cell-mode").dispatchEvent(new Event("change"))');
+    assert.equal(await evaluate('document.querySelector("[data-address=\'249\']").textContent'),"F9");
+    assert.equal(await evaluate('document.querySelector("[data-address=\'249\']").classList.contains("selected")'),true);
+    assert.match(await evaluate('document.getElementById("details").textContent'),/Last 0x1A/);
     await evaluate('document.querySelector("[data-address=\'90\']").click()');
     assert.match(await evaluate('document.getElementById("details").textContent'),/refuted/);
     assert.match(await evaluate('document.getElementById("details").textContent'),/Running flags/);
     await evaluate('document.getElementById("capture").value="1";document.getElementById("capture").dispatchEvent(new Event("change"))');
-    assert.equal(await evaluate('document.querySelector("[data-address=\'249\']").textContent'),"??");
+    assert.equal(await evaluate('document.querySelector("[data-address=\'249\']").textContent'),"·");
     await evaluate('document.querySelector("[data-address=\'249\']").click()');
     assert.match(await evaluate('document.getElementById("details").textContent'),/failed reads/);
     await evaluate('document.getElementById("profile").value="1";document.getElementById("profile").dispatchEvent(new Event("change"))');
@@ -91,23 +121,47 @@ async function main() {
       "ram:257":{n:1,last:255,min:255,max:255,changes:0,distinct:1,rejected:0,first_t:2,last_t:2,points:[[2,255]],histogram:[[255,1]]}
     }});chooseProfile();document.querySelector("[data-address='257']").click();`);
     assert.equal(await evaluate('document.querySelectorAll(".byte").length'),272);
-    assert.equal(await evaluate('document.querySelectorAll(".selected").length'),2);
+    assert.equal(await evaluate('document.querySelectorAll(".byte.selected").length'),2);
     assert.match(await evaluate('document.getElementById("details").textContent'),/Raw -1; decoded 8/);
     await open("eeprom");
     assert.equal(await evaluate('document.getElementById("capture").options.length'),1);
     await evaluate('document.querySelector("[data-address=\'60\']").dispatchEvent(new PointerEvent("pointermove",{clientX:100,clientY:100}))');
     assert.equal(await evaluate('document.getElementById("tooltip").hidden'),false);
     assert.match(await evaluate('document.getElementById("tooltip").textContent'),/Stop time/);
-    assert.equal(await evaluate('document.querySelectorAll(".selected").length'),18);
+    assert.equal(await evaluate('document.querySelectorAll(".byte.hovered").length'),18);
+    assert.equal(await evaluate('document.querySelectorAll(".selected").length'),0);
+    assert.match(await evaluate('document.getElementById("details").textContent'),/Nothing selected/);
+    await evaluate('document.querySelector("[data-address=\'60\']").click()');
     assert.match(await evaluate('document.getElementById("details").textContent'),/chrono_programs.program_1.stop/);
     await evaluate('document.querySelector("[data-address=\'61\']").click()');
     assert.match(await evaluate('document.getElementById("details").textContent'),/mon-fri/);
     await evaluate('document.getElementById("search").value="chrono";document.getElementById("search").dispatchEvent(new Event("input"))');
     assert.equal(await evaluate('document.querySelectorAll(".byte:not(.dim)").length'),18);
+    assert.equal(await evaluate('document.querySelector("[data-field=\'power_setting\']").hidden'),true);
+    assert.equal(await evaluate('document.querySelector("[data-field=\'chrono_programs.program_1.start\']").hidden'),false);
     await evaluate('document.querySelector("[data-address=\'61\']").focus();document.activeElement.dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight"}))');
     assert.equal(await evaluate('document.activeElement.dataset.address'),"62");
+    await evaluate('document.getElementById("search").value="";document.getElementById("search").dispatchEvent(new Event("input"));document.querySelector("[data-field=\'chrono_programs.program_1\']").click()');
+    assert.equal(await evaluate('document.querySelectorAll(".byte.selected").length'),3);
+    assert.equal(await evaluate('document.querySelectorAll(".field-entry.selected").length'),1);
+    const programDetails=await evaluate('document.getElementById("details").textContent');
+    await evaluate('document.querySelector("[data-field=\'chrono_programs.program_1.start\']").dispatchEvent(new PointerEvent("pointerenter"))');
+    assert.equal(await evaluate('document.querySelectorAll(".byte.hovered").length'),1);
+    assert.equal(await evaluate('document.querySelector("[data-address=\'59\']").matches(".selected.hovered")'),true);
+    assert.equal(await evaluate('document.getElementById("details").textContent'),programDetails);
+    await evaluate('document.querySelector("[data-field=\'chrono_programs.program_1.start\']").dispatchEvent(new PointerEvent("pointerleave"))');
+    assert.equal(await evaluate('document.querySelectorAll(".byte.hovered").length'),0);
+    assert.equal(await evaluate('document.querySelectorAll(".byte.selected").length'),3);
+    await evaluate('document.getElementById("search").value="0x3C";document.getElementById("search").dispatchEvent(new Event("input"))');
+    assert.equal(await evaluate('document.querySelector("[data-field=\'chrono_programs\']").hidden'),false);
+    assert.equal(await evaluate('document.querySelector("[data-field=\'chrono_programs.program_1.stop\']").hidden'),false);
+    assert.equal(await evaluate('document.querySelector("[data-field=\'chrono_programs.program_2\']").hidden'),true);
+    for(const width of [700,900,1200,1600]){
+      await send("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:false},sessionId);
+      assert.equal(await evaluate('document.documentElement.scrollWidth<=window.innerWidth'),true,"No viewport overflow at "+width);
+    }
     assert.deepEqual(errors,[]);
-    console.log("Browser tests passed: hover, members, region highlighting, overlap, capture validity, profile isolation, search, keyboard.");
+    console.log("Browser tests passed: linked catalogue, category tabs, independent hover/selection, click-only details, layout colors, members, captures, search, keyboard, responsive layout.");
   }finally{
     clearTimeout(timeout);
     if(browser.exitCode===null){browser.kill();await stopped;}

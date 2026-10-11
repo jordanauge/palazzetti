@@ -1,0 +1,10 @@
+# Palazzetti Ecofire Lara on a NodeMCU V3 / ESP-12F (ESP8266) through the 1-wire adapter.
+#   esphome run example/palazzetti-ecofire-lara.yaml
+# Set lab_allow_write to "true" only for reverse-engineering sessions (see docs/reverse-engineering.md).
+substitutions:
+  lab_allow_write: "false"
+
+packages:
+  base: !include palazzetti-base.yaml
+  entities: !include palazzetti-ecofire-lara.entities.yaml
+  web: !include palazzetti-web.yaml

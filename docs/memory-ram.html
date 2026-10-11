@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAM hex map</title>
+<style>
+:root{color-scheme:dark;--bg:#101722;--panel:#1b2636;--text:#e6edf3;--muted:#a8b5c5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,sans-serif}
+header,main{max-width:1450px;margin:auto;padding:20px}a{color:#8ac7ff}h1{margin:8px 0}
+.controls{display:flex;gap:15px;flex-wrap:wrap;align-items:end;margin:20px 0}label{display:grid;gap:5px}
+select,input,button{font:inherit;color:inherit;background:var(--panel);border:1px solid #536277;border-radius:5px;padding:8px}
+.layout{display:grid;grid-template-columns:minmax(440px,1fr) minmax(280px,420px);gap:22px}
+.dump-wrap{overflow:auto}.dump{border-collapse:separate;border-spacing:3px;font-family:ui-monospace,monospace}
+.dump th{color:var(--muted);font-size:12px;padding:5px}.dump td{padding:0}
+.byte{width:100%;min-width:33px;padding:7px 4px;border:1px solid #465269;background:#233043;border-radius:4px;font-family:inherit}
+.confirmed{border-bottom:4px solid #2ecc71}.observed{border-bottom:4px solid #3498db}
+.reported{border-bottom:4px solid #a989db}.hypothesis{border-bottom:4px solid #e6a84c}
+.unknown{border-bottom:4px solid #95a5a6}.refuted{border-bottom:4px solid #ef7171}
+.selected,.byte:focus-visible{outline:2px solid white;background:#40526b}.dim{opacity:.25}
+.legend{display:flex;gap:10px;flex-wrap:wrap}.legend span{padding:4px 7px;background:var(--panel)}
+#details{position:sticky;top:12px;align-self:start;max-height:90vh;overflow:auto;padding:18px;background:var(--panel);border-radius:8px}
+.muted,small{color:var(--muted)}.field{border-top:1px solid #536277;padding:10px 0}.field p{margin:5px 0}
+.field h3{margin:5px 0;font-size:16px}code{overflow-wrap:anywhere}pre{white-space:pre-wrap;font-size:13px}
+.plot{width:100%;height:100px;border:1px solid #536277}.plot polyline{fill:none;stroke:#8ac7ff;stroke-width:2}
+#tooltip{position:fixed;z-index:10;max-width:340px;padding:10px;border:1px solid #8196ac;border-radius:6px;background:#101722;pointer-events:none;white-space:pre-line;font:13px system-ui}
+[hidden]{display:none!important}.error{color:#ff9494}
+@media(max-width:850px){.layout{display:block}#details{position:static;max-height:none;margin-top:20px}header,main{padding:12px}}
+</style>
+<header>
+<nav><a href="https://github.com/jordanauge/palazzetti">Repository</a> · <a href="https://github.com/jordanauge/palazzetti/blob/main/docs/memory-map.md">Map documentation</a> ·
+<a href="memory-ram.html">RAM</a> · <a href="memory-eeprom.html">EEPROM</a></nav>
+<h1>RAM hex map</h1>
+<p>Read-only Micronova memory atlas. Hover or focus a byte for a quick description; click to pin its details.
+Multi-byte regions highlight together; members show their offset within the region.</p>
+<p class="muted">Unknown bytes are <code>??</code>, never fabricated zeroes. Capture bytes are each address's last
+valid observation, not a simultaneous snapshot. Failed reads are excluded. Generic profiles are not Lara maps.</p>
+<div class="controls">
+<label>Board profile<select id="profile"></select></label>
+<label>Capture<select id="capture"></select></label>
+<label>Find field / address<input id="search" placeholder="temperature, chrono, 0xF9"></label>
+</div>
+<p id="coverage"></p><div id="legend" class="legend"></div>
+<noscript>This interactive map requires JavaScript. See the linked Markdown map for a text version.</noscript>
+<p id="error" class="error" role="alert" hidden></p>
+</header>
+<main class="layout">
+<div class="dump-wrap"><table class="dump" aria-label="Memory bytes"><thead id="head"></thead><tbody id="grid"></tbody></table></div>
+<aside id="details" aria-live="polite"><h2>Inspect a byte</h2><p>Hover, focus or click the hex grid.</p></aside>
+</main>
+<div id="tooltip" role="tooltip" hidden></div>
+<script id="map-data" type="application/json">{"memory": "ram", "profiles": [{"id": "palazzetti-ecofire-lara", "title": "Palazzetti Ecofire Lara", "sources": {"notes-2020": "Manual observations (2020), private repo notes/2020-palazzetti-repo", "dump-2020": "RAM capture 2020-02-10..12, private repo dumps/2020-02-10-ram", "dump-2020-02-08": "Timestamped RAM polling in private reverse repo legacy/2020-backup/out2 (2020-02-08, 1.76 h); successful callbacks only, raw checksums unavailable"}, "fields": [{"id": "power_state", "mem": "ram", "addr": 249, "name": "Power state", "status": "observed", "sources": ["notes-2020", "dump-2020"], "values": {"26": "off", "43": "ignition", "75": "working", "29": "final cleaning"}, "notes": "Ignition lasts ~20 min, final cleaning ~10 min. All four cycles of the dump follow off \u2192 ignition \u2192 working \u2192 final cleaning \u2192 off.", "write_status": "unverified", "width": 1, "members": []}, {"id": "power_state_aux", "mem": "ram", "addr": 250, "name": "Power state (secondary)", "status": "observed", "sources": ["notes-2020", "dump-2020"], "values": {"50": "off", "53": "ignition or working", "59": "final cleaning"}, "write_status": "unverified", "width": 1, "members": []}, {"id": "phase_step", "mem": "ram", "addr": 108, "name": "Phase step / sequencer position", "status": "hypothesis", "sources": ["notes-2020", "dump-2020"], "notes": "1 when off, 24\u201326 during ignition, 32\u201333 while working, 39/45/50 during final cleaning.", "write_status": "unverified", "width": 1, "members": []}, {"id": "status", "mem": "ram", "addr": 33, "name": "Generic Micronova stove state", "status": "refuted", "sources": ["dump-2020"], "notes": "Constant 5 during the whole dump, including on/off cycles. Do not use the generic on/off writes here.", "write_status": "unverified", "width": 1, "members": []}, {"id": "phase_substep", "mem": "ram", "addr": 78, "name": "Phase sub-step", "status": "hypothesis", "sources": ["dump-2020"], "notes": "0 off, 1\u20133 during ignition, 4 while working (6 briefly), 6 during final cleaning (\u03b7\u00b2 0.99 with 0xF9).", "write_status": "unverified", "width": 1, "members": []}, {"id": "ignition_counter", "mem": "ram", "addr": 60, "name": "Ignition counter", "status": "hypothesis", "sources": ["dump-2020"], "notes": "Non-zero only during ignition, steps through 1\u201320 (~1 per minute over the ~20 min ignition).", "write_status": "unverified", "width": 1, "members": []}, {"id": "onoff_0xd0", "mem": "ram", "addr": 208, "name": "Unknown D0, follows on/off", "status": "unknown", "sources": ["dump-2020"], "notes": "Mostly 8 when off, 88\u201390 during final cleaning, 56\u201390 while working. Pairs with 0xD2.", "write_status": "unverified", "width": 1, "members": []}, {"id": "onoff_0xd2", "mem": "ram", "addr": 210, "name": "Unknown D2, follows on/off", "status": "unknown", "sources": ["dump-2020"], "notes": "Mostly 4\u201312 when off, 84\u201394 during final cleaning, 48\u201394 while working. Pairs with 0xD0.", "write_status": "unverified", "width": 1, "members": []}, {"id": "fumes_temperature", "mem": "ram", "addr": 66, "name": "Fumes temperature", "unit": "\u00b0C", "status": "observed", "sources": ["notes-2020", "dump-2020", "dump-2020-02-08"], "notes": "12\u201358 \u00b0C off, 68\u2013133 \u00b0C working in the later capture. In the February 8 capture, 25\u2013124 (23 distinct values). RAM 0x4B tracks this value; sequential polling can differ while temperature changes, so it is not an atomic mirror.", "write_status": "unverified", "width": 1, "members": []}, {"id": "fumes_temperature_mirror", "mem": "ram", "addr": 75, "name": "Fumes temperature (copy)", "unit": "\u00b0C", "status": "observed", "sources": ["dump-2020"], "write_status": "unverified", "width": 1, "members": []}, {"id": "room_temperature", "mem": "ram", "addr": 73, "name": "Room temperature", "unit": "\u00b0C", "status": "hypothesis", "sources": ["dump-2020", "dump-2020-02-08"], "notes": "19\u201327 \u00b0C, slow, rises while the stove works. February 8 capture: 21\u201327, 6 distinct values; this supports temperature-like evolution but does not identify the probe.", "write_status": "unverified", "width": 1, "members": []}, {"id": "board_temperature", "mem": "ram", "addr": 74, "name": "Temperature (board or ambient probe close to the stove)", "unit": "\u00b0C", "status": "hypothesis", "sources": ["notes-2020", "dump-2020", "dump-2020-02-08"], "notes": "20\u201324 \u00b0C off, up to 36 \u00b0C while working. February 8 capture: 24\u201334, 7 distinct values; probe identity remains unverified.", "write_status": "unverified", "width": 1, "members": []}, {"id": "room_temperature_generic", "mem": "ram", "addr": 1, "name": "Generic Micronova room temperature", "status": "refuted", "sources": ["dump-2020"], "notes": "Changes on almost every scan (0\u201384); looks like a fast counter or raw ADC value.", "write_status": "unverified", "width": 1, "members": []}, {"id": "fumes_temperature_generic", "mem": "ram", "addr": 90, "name": "Generic Micronova fumes temperature", "status": "refuted", "sources": ["dump-2020"], "notes": "Not a temperature on the Lara: 63 (0b00111111) when off, 255 while running, a few 191/127. Looks like a bit field (outputs or flags). The 2020 notes saw \"high values, 0 after off\".", "write_status": "unverified", "width": 1, "members": []}, {"id": "running_flags", "mem": "ram", "addr": 90, "name": "Running flags (bit field?)", "status": "hypothesis", "sources": ["notes-2020", "dump-2020"], "write_status": "unverified", "width": 1, "members": []}, {"id": "fumes_fan_speed", "mem": "ram", "addr": 55, "name": "Fumes extractor speed", "unit": "rpm", "scale": 10, "status": "observed", "sources": ["notes-2020", "dump-2020"], "notes": "0 when off, 135\u2013249 while running (same address as generic Micronova). RAM 0x39 tracks it.", "write_status": "unverified", "width": 1, "members": []}, {"id": "fumes_fan_speed_mirror", "mem": "ram", "addr": 57, "name": "Fumes extractor speed (set point or copy)", "status": "observed", "sources": ["dump-2020"], "write_status": "unverified", "width": 1, "members": []}, {"id": "power_actual", "mem": "ram", "addr": 63, "name": "Actual power level", "status": "observed", "sources": ["notes-2020", "dump-2020"], "notes": "0 off, 2 during ignition, 1\u20134 while working.", "write_status": "unverified", "width": 1, "members": []}, {"id": "power_actual_aux", "mem": "ram", "addr": 68, "name": "Power related level", "status": "hypothesis", "sources": ["dump-2020"], "notes": "0 off, 0\u20132 ignition, 2\u20134 working.", "write_status": "unverified", "width": 1, "members": []}, {"id": "work_countdown", "mem": "ram", "addr": 56, "name": "Working countdown (seconds?)", "status": "hypothesis", "sources": ["notes-2020", "dump-2020"], "notes": "Cycles 60\u21920 while working, 0 otherwise.", "write_status": "unverified", "width": 1, "members": []}, {"id": "ignition_level", "mem": "ram", "addr": 2, "name": "Unknown, ignition related", "status": "hypothesis", "sources": ["notes-2020", "dump-2020"], "notes": "255 off, 12\u201368 during ignition, 68 while working.", "write_status": "unverified", "width": 1, "members": []}, {"id": "power_actual_generic", "mem": "ram", "addr": 52, "name": "Generic Micronova power", "status": "refuted", "sources": ["dump-2020"], "notes": "Oscillates 2\u201311 in every state, 10 when off.", "write_status": "unverified", "width": 1, "members": []}, {"id": "power_setting_ram", "mem": "ram", "addr": 101, "name": "Power setting P (RAM copy)", "status": "observed", "sources": ["notes-2020", "dump-2020"], "notes": "Follows P on the panel (0 = auto). RAM 0x47 also follows P. Constant 0 in the dump.", "write_status": "unverified", "width": 1, "members": []}, {"id": "fan_setting_ram", "mem": "ram", "addr": 102, "name": "Ambient fan setting V (RAM copy)", "status": "observed", "sources": ["notes-2020", "dump-2020"], "values": {"0": "auto", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5"}, "notes": "RAM 0x46 also follows V. Constant 0 in the dump.", "write_status": "unverified", "width": 1, "members": []}, {"id": "target_temperature_ram", "mem": "ram", "addr": 103, "name": "Target temperature (RAM copy)", "unit": "\u00b0C", "status": "hypothesis", "sources": ["notes-2020", "dump-2020"], "notes": "Constant 26 in the dump, matching EEPROM 78 at that time.", "write_status": "unverified", "width": 1, "members": []}, {"id": "shutdown_countdown", "mem": "ram", "addr": 9, "name": "Countdown after switch off", "status": "observed", "sources": ["notes-2020", "dump-2020"], "notes": "0 while running, counts 10\u21920 during final cleaning, 255 when off.", "write_status": "unverified", "width": 1, "members": []}, {"id": "onoff_0x3b", "mem": "ram", "addr": 59, "name": "Unknown, follows on/off", "status": "observed", "sources": ["notes-2020", "dump-2020"], "notes": "255 off, 0 running, short 0 1 2 4 \u2026 sequence after switch off. Generic Micronova water temperature address.", "write_status": "unverified", "width": 1, "members": []}, {"id": "onoff_0x3e", "mem": "ram", "addr": 62, "name": "Unknown flag, follows on/off", "status": "observed", "sources": ["notes-2020", "dump-2020"], "values": {"0": "running", "128": "stopped"}, "notes": "Goes 0 \u2192 128 about 10 min after switch off.", "write_status": "unverified", "width": 1, "members": []}, {"id": "onoff_0xf0", "mem": "ram", "addr": 240, "name": "Unknown, follows on/off", "status": "observed", "sources": ["notes-2020", "dump-2020"], "notes": "0 off, 103 running.", "write_status": "unverified", "width": 1, "members": []}, {"id": "onoff_0xf1", "mem": "ram", "addr": 241, "name": "Unknown analog value, follows on/off", "status": "observed", "sources": ["notes-2020", "dump-2020"], "notes": "83 running, 215\u2013230 off (slow drift).", "write_status": "unverified", "width": 1, "members": []}, {"id": "onoff_0xf5", "mem": "ram", "addr": 245, "name": "Unknown, follows on/off", "status": "observed", "sources": ["notes-2020", "dump-2020"], "notes": "2 off, 63 running.", "write_status": "unverified", "width": 1, "members": []}, {"id": "onoff_0xfb", "mem": "ram", "addr": 251, "name": "Unknown, follows on/off", "status": "observed", "sources": ["notes-2020", "dump-2020"], "write_status": "unverified", "width": 1, "members": []}, {"id": "clock_minute", "mem": "ram", "addr": 94, "name": "Clock, minutes", "encoding": "bcd", "status": "observed", "sources": ["notes-2020", "dump-2020"], "write_status": "unverified", "width": 1, "members": []}, {"id": "clock_hour", "mem": "ram", "addr": 95, "name": "Clock, hours", "encoding": "bcd", "status": "observed", "sources": ["notes-2020", "dump-2020"], "write_status": "unverified", "width": 1, "members": []}, {"id": "clock_weekday", "mem": "ram", "addr": 96, "name": "Clock, day of week", "status": "observed", "sources": ["notes-2020", "dump-2020"], "values": {"0": "sunday", "1": "monday", "2": "tuesday", "3": "wednesday", "4": "thursday", "5": "friday", "6": "saturday"}, "notes": "Read 1 on Monday 2020-02-10 and 2 on Tuesday, as expected.", "write_status": "unverified", "width": 1, "members": []}, {"id": "clock_hour_tens", "mem": "ram", "addr": 107, "name": "Hours and tens of minutes", "status": "observed", "sources": ["notes-2020"], "notes": "BCD-like, increments every 10 minutes.", "write_status": "unverified", "width": 1, "members": []}, {"id": "counter_hour", "mem": "ram", "addr": 48, "name": "0\u201359 counter (one cycle per hour), frozen when off", "status": "observed", "sources": ["notes-2020"], "write_status": "unverified", "width": 1, "members": []}, {"id": "counter_2h", "mem": "ram", "addr": 50, "name": "120\u21920 counter, restarts every two hours", "status": "observed", "sources": ["notes-2020", "dump-2020"], "write_status": "unverified", "width": 1, "members": []}, {"id": "auger_time", "mem": "ram", "addr": 13, "name": "Generic Micronova auger time", "status": "unknown", "sources": ["dump-2020"], "notes": "Constant 232 for 47 h, so not a live auger time here. Likely the board/model code read by the Connection Box (see palazzetti-connbox).", "write_status": "unverified", "width": 1, "members": []}, {"id": "constants_0x23", "mem": "ram", "addr": 35, "count": 13, "name": "Constant block 43 20 10 60 20 80 159 145 145 145 145 11 5", "status": "observed", "sources": ["notes-2020"], "write_status": "unverified", "width": 13, "members": []}]}, {"id": "micronova-common", "title": "Micronova (generic, community consensus)", "sources": {"esphome-micronova": "ESPHome Micronova component defaults: https://esphome.io/components/micronova/", "stufapellet": "StufaPellet community protocol/project: https://stufapellet.forumcommunity.net/?t=53061907 (original archive retained privately)", "forum": "Community table of a Micronova board (see micronova-forum.yaml)"}, "fields": [{"id": "room_temperature", "mem": "ram", "addr": 1, "name": "Room temperature", "unit": "\u00b0C", "scale": 0.5, "status": "reported", "sources": ["esphome-micronova", "stufapellet"], "write_status": "unverified", "width": 1, "members": []}, {"id": "water_temperature", "mem": "ram", "addr": 3, "name": "Water temperature (hydro stoves)", "unit": "\u00b0C", "scale": 0.5, "status": "reported", "sources": ["esphome-micronova", "stufapellet"], "write_status": "unverified", "width": 1, "members": []}, {"id": "auger_time", "mem": "ram", "addr": 13, "name": "Auger (screw) on-time", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "status", "mem": "ram", "addr": 33, "name": "Stove state", "access": "rw", "status": "reported", "sources": ["esphome-micronova", "stufapellet"], "values": {"0": "off", "1": "start", "2": "pellet loading", "3": "ignition", "4": "working", "5": "brazier cleaning", "6": "final cleaning", "7": "standby", "8": "no pellet alarm", "9": "ignition failure alarm", "10": "undefined alarm"}, "notes": "Writing 0x01 switches on, 0x06 switches off (frames 80 21 01 A2 / 80 21 06 A7).", "write_status": "unverified", "width": 1, "members": []}, {"id": "power_actual", "mem": "ram", "addr": 52, "name": "Actual power level", "status": "reported", "sources": ["esphome-micronova", "stufapellet"], "write_status": "unverified", "width": 1, "members": []}, {"id": "fumes_fan_speed", "mem": "ram", "addr": 55, "name": "Fumes extractor speed", "unit": "rpm", "scale": 10, "status": "reported", "sources": ["esphome-micronova"], "notes": "rpm = value \u00d7 10 + model specific offset (ESPHome `fan_rpm_offset`), 0 when stopped.", "write_status": "unverified", "width": 1, "members": []}, {"id": "water_temperature_alt", "mem": "ram", "addr": 59, "name": "Water temperature (alternate address)", "unit": "\u00b0C", "scale": 0.5, "status": "reported", "sources": ["esphome-micronova"], "write_status": "unverified", "width": 1, "members": []}, {"id": "water_pressure", "mem": "ram", "addr": 60, "name": "Water pressure", "unit": "bar", "scale": 0.1, "status": "reported", "sources": ["esphome-micronova"], "write_status": "unverified", "width": 1, "members": []}, {"id": "fumes_temperature", "mem": "ram", "addr": 90, "name": "Fumes temperature", "unit": "\u00b0C", "status": "reported", "sources": ["esphome-micronova", "stufapellet"], "write_status": "unverified", "width": 1, "members": []}]}, {"id": "micronova-forum", "title": "Micronova variant (stufapellet forum table)", "sources": {"esphome-micronova": "ESPHome Micronova component defaults: https://esphome.io/components/micronova/", "stufapellet": "StufaPellet community protocol/project: https://stufapellet.forumcommunity.net/?t=53061907 (original archive retained privately)", "forum": "Community Micronova table: https://stufapellet.forumcommunity.net/?t=53061907 (2020 notes retained privately; applicability unverified)"}, "fields": [{"id": "room_temperature", "mem": "ram", "addr": 1, "name": "Room temperature", "unit": "\u00b0C", "scale": 0.5, "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "water_temperature", "mem": "ram", "addr": 3, "name": "Water temperature (hydro stoves)", "unit": "\u00b0C", "scale": 0.5, "status": "reported", "sources": ["esphome-micronova", "stufapellet"], "write_status": "unverified", "width": 1, "members": []}, {"id": "auger_time", "mem": "ram", "addr": 13, "name": "Auger (screw) on-time", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "status", "mem": "ram", "addr": 33, "name": "Stove state", "access": "rw", "status": "reported", "sources": ["forum"], "values": {"0": "off", "1": "start", "2": "pellet loading", "3": "ignition", "4": "working", "5": "brazier cleaning", "6": "final cleaning", "7": "standby", "8": "no pellet alarm", "9": "ignition failure alarm", "10": "undefined alarm"}, "notes": "Writing 0x01 switches on, 0x06 switches off (frames 80 21 01 A2 / 80 21 06 A7).", "write_status": "unverified", "width": 1, "members": []}, {"id": "power_actual", "mem": "ram", "addr": 52, "name": "Actual power level", "status": "reported", "sources": ["esphome-micronova", "stufapellet"], "write_status": "unverified", "width": 1, "members": []}, {"id": "fumes_fan_speed", "mem": "ram", "addr": 55, "name": "Fumes extractor speed", "unit": "rpm", "scale": 10, "status": "reported", "sources": ["forum"], "notes": "rpm = value \u00d7 10 + model specific offset (ESPHome `fan_rpm_offset`), 0 when stopped.", "write_status": "unverified", "offset": 250, "width": 1, "members": []}, {"id": "water_temperature_alt", "mem": "ram", "addr": 59, "name": "Water temperature (alternate address)", "unit": "\u00b0C", "scale": 0.5, "status": "reported", "sources": ["esphome-micronova"], "write_status": "unverified", "width": 1, "members": []}, {"id": "water_pressure", "mem": "ram", "addr": 60, "name": "Water pressure", "unit": "bar", "scale": 0.1, "status": "reported", "sources": ["esphome-micronova"], "write_status": "unverified", "width": 1, "members": []}, {"id": "fumes_temperature", "mem": "ram", "addr": 90, "name": "Fumes temperature", "unit": "\u00b0C", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "clock_weekday", "mem": "ram", "addr": 100, "name": "Clock, day of week", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "clock_hour", "mem": "ram", "addr": 101, "name": "Clock, hours", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "clock_minute", "mem": "ram", "addr": 102, "name": "Clock, minutes", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "clock_day", "mem": "ram", "addr": 103, "name": "Clock, day of month", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "clock_month", "mem": "ram", "addr": 104, "name": "Clock, month", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "clock_year", "mem": "ram", "addr": 105, "name": "Clock, year (since 2000)", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "intake_air_temperature", "mem": "ram", "addr": 115, "name": "Intake air temperature", "unit": "\u00b0C", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}]}, {"id": "micronova-p937", "title": "Micronova P937 board", "sources": {"esphome-micronova": "ESPHome Micronova component defaults: https://esphome.io/components/micronova/", "stufapellet": "StufaPellet community protocol/project: https://stufapellet.forumcommunity.net/?t=53061907 (original archive retained privately)", "forum": "Community table of a Micronova board (see micronova-forum.yaml)", "p937": "Community JavaScript Micronova controller, P937 profile (collected in 2020 notes)"}, "fields": [{"id": "room_temperature", "mem": "ram", "addr": 1, "name": "Room temperature", "unit": "\u00b0C", "scale": 0.5, "status": "reported", "sources": ["p937"], "write_status": "unverified", "width": 1, "members": []}, {"id": "water_temperature", "mem": "ram", "addr": 3, "name": "Water temperature (hydro stoves)", "unit": "\u00b0C", "scale": 0.5, "status": "reported", "sources": ["esphome-micronova", "stufapellet"], "write_status": "unverified", "width": 1, "members": []}, {"id": "auger_time", "mem": "ram", "addr": 13, "name": "Auger (screw) on-time", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "status", "mem": "ram", "addr": 33, "name": "Stove state", "access": "rw", "status": "reported", "sources": ["p937"], "values": {"0": "off", "1": "start", "2": "pellet loading", "3": "ignition", "4": "working", "5": "brazier cleaning", "6": "final cleaning", "7": "standby", "8": "no pellet alarm", "9": "ignition failure alarm", "10": "undefined alarm"}, "notes": "Writing 0x01 switches on, 0x06 switches off (frames 80 21 01 A2 / 80 21 06 A7).", "write_status": "unverified", "width": 1, "members": []}, {"id": "power_actual", "mem": "ram", "addr": 52, "name": "Actual power level", "status": "reported", "sources": ["esphome-micronova", "stufapellet"], "write_status": "unverified", "width": 1, "members": []}, {"id": "fumes_fan_speed", "mem": "ram", "addr": 55, "name": "Fumes extractor speed", "unit": "rpm", "scale": 10, "status": "reported", "sources": ["esphome-micronova"], "notes": "rpm = value \u00d7 10 + model specific offset (ESPHome `fan_rpm_offset`), 0 when stopped.", "write_status": "unverified", "width": 1, "members": []}, {"id": "water_temperature_alt", "mem": "ram", "addr": 59, "name": "Water temperature (alternate address)", "unit": "\u00b0C", "scale": 0.5, "status": "reported", "sources": ["esphome-micronova"], "write_status": "unverified", "width": 1, "members": []}, {"id": "water_pressure", "mem": "ram", "addr": 60, "name": "Water pressure", "unit": "bar", "scale": 0.1, "status": "reported", "sources": ["esphome-micronova"], "write_status": "unverified", "width": 1, "members": []}, {"id": "fumes_temperature", "mem": "ram", "addr": 90, "name": "Fumes temperature", "unit": "\u00b0C", "status": "reported", "sources": ["esphome-micronova", "stufapellet"], "write_status": "unverified", "width": 1, "members": []}, {"id": "probe_temperature", "mem": "ram", "addr": 68, "name": "Probe temperature", "unit": "\u00b0C", "status": "reported", "sources": ["p937"], "write_status": "unverified", "width": 1, "members": []}]}, {"id": "palazzetti-connbox", "title": "Palazzetti Connection Box (firmware notes, 2020)", "sources": {"connbox-2020": "Connection Box firmware disassembly notes (2020), private repo notes/2020-palazzetti-repo/COMMANDS"}, "fields": [{"id": "board_model", "mem": "ram", "addr": 13, "name": "Board / model code (selects the address set)", "status": "reported", "sources": ["connbox-2020"], "notes": "Read first by `GET ALLS`. One code is noted as \"0xB model\" (alternative addresses below). On the Ecofire Lara it is constant 232 (0xE8) over 47 h, consistent with a model code rather than the generic Micronova auger time.", "write_status": "unverified", "width": 1, "members": []}, {"id": "status", "mem": "ram", "addr": 33, "name": "Stove state (target of SET STAT)", "access": "rw", "status": "reported", "sources": ["connbox-2020"], "notes": "Written by `SET STAT`. Constant 5 on the Lara, so the Lara likely uses another model branch.", "write_status": "unverified", "width": 1, "members": []}, {"id": "power_level", "mem": "ram", "addr": 55, "name": "Power level (GET ALLS / GET POWR, model A)", "status": "reported", "sources": ["connbox-2020"], "notes": "Noted with 0x64 for one model branch. On the Lara 0x37 behaves like the fumes extractor speed.", "write_status": "unverified", "width": 1, "members": []}, {"id": "power_level_aux", "mem": "ram", "addr": 100, "name": "Power (GET ALLS, model A, companion of 0x37)", "status": "reported", "sources": ["connbox-2020"], "write_status": "unverified", "width": 1, "members": []}, {"id": "power_level_b", "mem": "ram", "addr": 151, "name": "Power (GET ALLS, model B)", "status": "reported", "sources": ["connbox-2020"], "write_status": "unverified", "width": 1, "members": []}, {"id": "power_level_b_aux", "mem": "ram", "addr": 52, "name": "Power (GET ALLS, model B, companion of 0x97)", "status": "reported", "sources": ["connbox-2020"], "notes": "Same address as the generic Micronova power level.", "write_status": "unverified", "width": 1, "members": []}, {"id": "target_temperature", "mem": "ram", "addr": 54, "name": "Target temperature (GET SETP, \"0xB model\")", "unit": "\u00b0C", "status": "reported", "sources": ["connbox-2020"], "notes": "The note mentions bit shifts around the read (`srl`/`sra`), so the encoding may not be plain.", "write_status": "unverified", "width": 1, "members": []}, {"id": "target_temperature_alt", "mem": "ram", "addr": 160, "name": "Target temperature (GET SETP, other models)", "unit": "\u00b0C", "status": "reported", "sources": ["connbox-2020"], "write_status": "unverified", "width": 1, "members": []}]}], "captures": [], "statuses": {"confirmed": "verified by a write/read round trip or by the manufacturer", "observed": "seen behaving as described on this stove (dump or live session)", "reported": "taken from a third-party source, not verified on this stove", "hypothesis": "plausible interpretation of observations, needs a targeted test", "unknown": "address of interest, meaning not understood", "refuted": "generic meaning checked and wrong for this stove"}}</script>
+<script>
+"use strict";
+const data = JSON.parse(document.getElementById("map-data").textContent);
+const el = id => document.getElementById(id);
+const hex = (n,width=2) => "0x"+n.toString(16).toUpperCase().padStart(width,"0");
+const date = t => new Date(t*1000).toISOString();
+const text = (tag,value,parent,className) => {
+  const node=document.createElement(tag); node.textContent=value;
+  if(className)node.className=className; parent.append(node); return node;
+};
+let profile, capture, regions, buttons=[], pinned=null, size=256;
+function flatten(fields,parents=[]){
+  return fields.flatMap(f=>[{...f,parents},...flatten(f.members,[...parents,f])]);
+}
+function fieldsAt(addr){return regions.filter(f=>addr>=f.addr && addr<f.addr+f.width);}
+function observation(addr){return capture?.bytes[data.memory+":"+addr];}
+function decoded(field){
+  const values=Array.from({length:field.width},(_,i)=>observation(field.addr+i)?.last);
+  if(values.some(v=>v===undefined))return "No complete valid value in this capture";
+  const encoding=field.encoding||"uint8";
+  if(field.width>2)return "Block bytes: "+values.map(v=>hex(v)).join(" ");
+  let raw=values[0];
+  if(encoding.includes("16")){
+    raw=encoding.endsWith("le") ? values[0]+256*values[1] : values[0]*256+values[1];
+    if(encoding.startsWith("int") && raw>=32768)raw-=65536;
+  }else if(encoding==="int8" && raw>=128)raw-=256;
+  else if(encoding==="bcd"){
+    if((raw&15)>9||(raw>>4)>9)return "Invalid BCD byte";
+    raw=(raw>>4)*10+(raw&15);
+  }
+  const scaled=raw*(field.scale??1)+(field.offset??0);
+  const label=field.values?.[raw];
+  return `Raw ${raw}; decoded ${scaled}${field.unit?" "+field.unit:""}${label?" ("+label+")":""}`;
+}
+function show(addr){
+  const panel=el("details");panel.replaceChildren();
+  text("h2",`${data.memory.toUpperCase()} ${hex(addr,4)} / ${addr}`,panel);
+  const matches=fieldsAt(addr), record=observation(addr);
+  if(!matches.length)text("p","Meaning unknown: no field mapped in this profile.",panel);
+  for(const f of matches){
+    const section=text("section","",panel,"field");
+    text("h3",f.name||f.id,section);
+    text("code",[...f.parents.map(p=>p.id),f.id].join("."),section);
+    text("p",`${hex(f.addr,4)}–${hex(f.addr+f.width-1,4)} · ${f.width} byte(s) · byte +${addr-f.addr}`,section);
+    text("p",`${f.status} · ${data.statuses[f.status]} · access ${f.access||"r"}`,section);
+    text("p",`Write certainty: ${f.write_status||"unverified"}${f.mem==="eeprom"?" · persistent EEPROM; separate permission required":""}`,section);
+    text("p",`Encoding ${f.encoding||"uint8"} · scale ${f.scale??1}${f.unit?" · "+f.unit:""}`,section);
+    if(f.notes)text("p",f.notes,section);
+    if(f.values)text("pre",Object.entries(f.values).map(([v,n])=>`${hex(Number(v))}: ${n}`).join("\n"),section);
+    if(capture)text("p",decoded(f),section);
+    if(f.members.length)text("pre",f.members.map(m=>`+${m.addr-f.addr}  ${m.name||m.id} (${m.width} byte(s))`).join("\n"),section);
+    for(const key of f.sources||[])text("small",`${key}: ${profile.sources[key]||"source description absent"}`,section);
+  }
+  const section=text("section","",panel,"field");
+  text("h3","Capture evidence",section);
+  if(capture?.notes)text("p",capture.notes,section);
+  if(!record || !record.n){
+    text("p",capture?"No valid observations at this address.":"No capture selected.",section);
+    if(record?.rejected)text("p",`${record.rejected} failed reads; FF sentinel is not a value.`,section);
+  }else{
+    text("p",`${record.n} valid reads; ${record.rejected} rejected; ${record.changes} changes; ${record.distinct} distinct values`,section);
+    text("p",`Last ${hex(record.last)} (${record.last}); range ${record.min}–${record.max}`,section);
+    text("p",`${date(record.first_t)} to ${date(record.last_t)}`,section);
+    const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("viewBox","0 0 400 100");svg.setAttribute("class","plot");
+    svg.setAttribute("role","img");svg.setAttribute("aria-label","Observed byte values over time");
+    const line=document.createElementNS(svg.namespaceURI,"polyline");
+    const dt=record.last_t-record.first_t||1, dv=record.max-record.min||1;
+    line.setAttribute("points",record.points.map(([t,v])=>`${5+390*(t-record.first_t)/dt},${95-90*(v-record.min)/dv}`).join(" "));
+    svg.append(line);section.append(svg);
+    text("small","Downsampled history; counts and value distributions use all valid observations.",section);
+    text("pre",record.histogram.map(([v,n])=>`${hex(v)} (${v}): ${n} reads`).join("\n"),section);
+  }
+  const related=matches.filter(f=>f.width>1);
+  buttons.forEach((b,i)=>b.classList.toggle("selected",i===addr||related.some(f=>i>=f.addr&&i<f.addr+f.width)));
+}
+function filter(){
+  const q=el("search").value.trim().toLowerCase();
+  buttons.forEach((b,addr)=>{
+    const content=[hex(addr,4),hex(addr),...fieldsAt(addr).flatMap(f=>[f.id,f.name,f.notes])].join(" ").toLowerCase();
+    b.classList.toggle("dim",!!q&&!content.includes(q));
+  });
+}
+function tooltip(event,addr){
+  const matches=fieldsAt(addr);
+  el("tooltip").textContent=`${hex(addr,4)}\n`+(matches.length?matches.map(f=>`${f.name||f.id} · ${f.status} · byte +${addr-f.addr}/${f.width}`).join("\n"):"Unknown");
+  el("tooltip").hidden=false;
+  el("tooltip").style.left=Math.max(8,Math.min(event.clientX+12,window.innerWidth-350))+"px";
+  el("tooltip").style.top=Math.max(8,Math.min(event.clientY+12,window.innerHeight-el("tooltip").offsetHeight-8))+"px";
+  if(pinned===null)show(addr);
+}
+function rebuild(){
+  profile=data.profiles[Number(el("profile").value)];regions=flatten(profile.fields);pinned=null;
+  const selected=el("capture").value;
+  capture=selected===""?null:data.captures[Number(selected)];
+  if(capture&&capture.profile!==profile.id)throw new Error("Capture/profile mismatch");
+  const observedAddresses=capture?Object.keys(capture.bytes).filter(k=>k.startsWith(data.memory+":")).map(k=>Number(k.split(":")[1])):[];
+  const mappedEnd=Math.max(255,...regions.map(f=>f.addr+f.width-1),...observedAddresses);
+  size=Math.ceil((mappedEnd+1)/16)*16;
+  el("head").innerHTML="<tr><th>Address</th>"+Array.from({length:16},(_,i)=>`<th>${i.toString(16).toUpperCase()}</th>`).join("")+"</tr>";
+  el("grid").replaceChildren();buttons=[];
+  for(let row=0;row<size;row+=16){
+    const tr=document.createElement("tr");text("th",hex(row,4),tr);
+    for(let i=row;i<row+16;i++){
+      const td=text("td","",tr), matches=fieldsAt(i);
+      const status=matches.length?matches[matches.length-1].status:"unknown";
+      const record=observation(i);
+      const b=text("button",record?.n?hex(record.last).slice(2):"??",td,"byte "+status);
+      b.type="button";b.dataset.address=i;
+      b.setAttribute("aria-label",`${hex(i,4)} ${matches.map(f=>f.name||f.id).join("; ")||"Unknown"}`);
+      b.addEventListener("pointermove",e=>tooltip(e,i));
+      b.addEventListener("pointerleave",()=>el("tooltip").hidden=true);
+      b.addEventListener("focus",()=>{if(pinned===null)show(i);});
+      b.addEventListener("click",()=>{pinned=i;show(i);});
+      b.addEventListener("keydown",e=>{
+        const step={ArrowLeft:-1,ArrowRight:1,ArrowUp:-16,ArrowDown:16}[e.key];
+        if(step!==undefined){e.preventDefault();buttons[Math.max(0,Math.min(size-1,i+step))].focus();}
+        if(e.key==="Escape"){pinned=null;el("tooltip").hidden=true;}
+      });
+      buttons.push(b);
+    }
+    el("grid").append(tr);
+  }
+  const known=buttons.filter((_,i)=>fieldsAt(i).some(f=>!["unknown","refuted"].includes(f.status))).length;
+  const seen=buttons.filter((_,i)=>observation(i)?.n).length;
+  el("coverage").textContent=`${profile.title}: ${known}/${size} bytes annotated (including reported/hypothetical fields). `+
+    (capture?`${seen} bytes with accepted capture data; ${date(capture.first)} to ${date(capture.last)}. ${capture.notes||""}`:"No measured byte values selected.");
+  filter();show(0);
+}
+function chooseProfile(){
+  el("capture").replaceChildren();
+  const none=text("option","No capture (layout only)",el("capture"));none.value="";
+  data.captures.forEach((c,i)=>{if(c.profile===data.profiles[Number(el("profile").value)].id&&
+    Object.keys(c.bytes).some(k=>k.startsWith(data.memory+":"))){
+    const option=text("option",c.name,el("capture"));option.value=i;
+  }});
+  if(el("capture").options.length>1)el("capture").selectedIndex=1;
+  rebuild();
+}
+function guarded(fn){return (...args)=>{try{el("error").hidden=true;fn(...args);}
+  catch(e){el("error").textContent=e.message;el("error").hidden=false;console.error(e);}};}
+data.profiles.forEach((p,i)=>{const option=text("option",p.title,el("profile"));option.value=i;});
+for(const [status,help] of Object.entries(data.statuses)){
+  const span=text("span",status,el("legend"),status);span.title=help;
+}
+el("profile").addEventListener("change",guarded(chooseProfile));
+el("capture").addEventListener("change",guarded(rebuild));
+el("search").addEventListener("input",filter);
+guarded(chooseProfile)();
+</script>
+</html>

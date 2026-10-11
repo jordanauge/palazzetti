@@ -1,0 +1,77 @@
+# Addresses used by the Palazzetti Connection Box firmware, from 2020 disassembly notes
+# (private repo notes/2020-palazzetti-repo/COMMANDS). The box reads a model/board code first and
+# then picks address sets per model, which is why the same parameter can sit at different addresses.
+# Notes were terse: entries are `reported` until checked against a live box or the binary.
+profile: palazzetti-connbox
+title: Palazzetti Connection Box (firmware notes, 2020)
+sources:
+  connbox-2020: Connection Box firmware disassembly notes (2020), private repo notes/2020-palazzetti-repo/COMMANDS
+fields:
+  - id: board_model
+    mem: ram
+    addr: 0x0D
+    name: Board / model code (selects the address set)
+    status: reported
+    sources: [connbox-2020]
+    notes: >-
+      Read first by `GET ALLS`. One code is noted as "0xB model" (alternative addresses below).
+      On the Ecofire Lara it is constant 232 (0xE8) over 47 h, consistent with a model code
+      rather than the generic Micronova auger time.
+  - id: status
+    mem: ram
+    addr: 0x21
+    name: Stove state (target of SET STAT)
+    access: rw
+    status: reported
+    sources: [connbox-2020]
+    notes: Written by `SET STAT`. Constant 5 on the Lara, so the Lara likely uses another model branch.
+  - id: power_level
+    mem: ram
+    addr: 0x37
+    name: Power level (GET ALLS / GET POWR, model A)
+    status: reported
+    sources: [connbox-2020]
+    notes: Noted with 0x64 for one model branch. On the Lara 0x37 behaves like the fumes extractor speed.
+  - id: power_level_aux
+    mem: ram
+    addr: 0x64
+    name: Power (GET ALLS, model A, companion of 0x37)
+    status: reported
+    sources: [connbox-2020]
+  - id: power_level_b
+    mem: ram
+    addr: 0x97
+    name: Power (GET ALLS, model B)
+    status: reported
+    sources: [connbox-2020]
+  - id: power_level_b_aux
+    mem: ram
+    addr: 0x34
+    name: Power (GET ALLS, model B, companion of 0x97)
+    status: reported
+    sources: [connbox-2020]
+    notes: Same address as the generic Micronova power level.
+  - id: target_temperature
+    mem: ram
+    addr: 0x36
+    name: Target temperature (GET SETP, "0xB model")
+    unit: °C
+    status: reported
+    sources: [connbox-2020]
+    notes: The note mentions bit shifts around the read (`srl`/`sra`), so the encoding may not be plain.
+  - id: target_temperature_alt
+    mem: ram
+    addr: 0xA0
+    name: Target temperature (GET SETP, other models)
+    unit: °C
+    status: reported
+    sources: [connbox-2020]
+  - id: parameters
+    mem: eeprom
+    addr: 0x28
+    count: 32
+    name: Technical parameters (GET PARM / SET PARM)
+    access: rw
+    status: reported
+    sources: [connbox-2020]
+    notes: Start address from the notes; length unknown (32 is a placeholder). Values above 201 noted as invalid.

@@ -1,0 +1,113 @@
+# Variant reported on the Italian "stufapellet" forum for another Micronova board
+# (formula: displayed = ADD + RATIO × raw). Kept to show how offsets move between boards.
+profile: micronova-forum
+title: Micronova variant (stufapellet forum table)
+extends: micronova-common
+sources:
+  forum: "Community Micronova table: https://stufapellet.forumcommunity.net/?t=53061907 (2020 notes retained privately; applicability unverified)"
+fields:
+  - id: room_temperature
+    mem: ram
+    addr: 1
+    scale: 0.5
+    status: reported
+    sources: [forum]
+  - id: auger_time
+    mem: ram
+    addr: 13
+    status: reported
+    sources: [forum]
+  - id: status
+    mem: ram
+    addr: 33
+    status: reported
+    sources: [forum]
+  - id: fumes_fan_speed
+    mem: ram
+    addr: 55
+    scale: 10
+    offset: 250
+    status: reported
+    sources: [forum]
+  - id: fumes_temperature
+    mem: ram
+    addr: 90
+    status: reported
+    sources: [forum]
+  - id: clock_weekday
+    mem: ram
+    addr: 100
+    name: Clock, day of week
+    status: reported
+    sources: [forum]
+  - id: clock_hour
+    mem: ram
+    addr: 101
+    name: Clock, hours
+    status: reported
+    sources: [forum]
+  - id: clock_minute
+    mem: ram
+    addr: 102
+    name: Clock, minutes
+    status: reported
+    sources: [forum]
+  - id: clock_day
+    mem: ram
+    addr: 103
+    name: Clock, day of month
+    status: reported
+    sources: [forum]
+  - id: clock_month
+    mem: ram
+    addr: 104
+    name: Clock, month
+    status: reported
+    sources: [forum]
+  - id: clock_year
+    mem: ram
+    addr: 105
+    name: Clock, year (since 2000)
+    status: reported
+    sources: [forum]
+  - id: intake_air_temperature
+    mem: ram
+    addr: 115
+    name: Intake air temperature
+    unit: °C
+    status: reported
+    sources: [forum]
+  - id: technical_parameters
+    mem: eeprom
+    addr: 0
+    count: 38
+    name: Technical parameters PG00–PG15 / PF00–PF20
+    access: rw
+    status: reported
+    sources: [forum]
+  - id: user_parameters
+    mem: eeprom
+    addr: 54
+    count: 3
+    name: User parameters P100–P102
+    access: rw
+    status: reported
+    sources: [forum]
+  - id: chrono
+    mem: eeprom
+    addr: 76
+    count: 40
+    name: Chrono programs 1–4 (start/stop in minutes ÷ 10, day flags)
+    access: rw
+    status: reported
+    sources: [forum]
+  - id: target_temperature
+    mem: eeprom
+    addr: 125
+    status: reported
+    sources: [forum]
+  - id: power_setting
+    mem: eeprom
+    addr: 127
+    status: reported
+    sources: [forum]

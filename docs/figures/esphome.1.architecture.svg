@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 330" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#444"/></marker>
+  </defs>
+  <rect width="760" height="330" fill="#fff"/>
+  <!-- ESP8266 boundary -->
+  <rect x="10" y="10" width="540" height="310" rx="8" fill="#f6f8fa" stroke="#888" stroke-dasharray="5,4"/>
+  <text x="22" y="30" font-weight="bold" fill="#555">ESP8266 (ESPHome firmware)</text>
+  <!-- entities -->
+  <g fill="#dbeafe" stroke="#2563eb">
+    <rect x="30" y="50" width="150" height="34" rx="5"/>
+    <rect x="30" y="94" width="150" height="34" rx="5"/>
+    <rect x="30" y="138" width="150" height="34" rx="5"/>
+    <rect x="30" y="182" width="150" height="34" rx="5"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="105" y="72">sensor</text>
+    <text x="105" y="116">text_sensor (map)</text>
+    <text x="105" y="160">number</text>
+    <text x="105" y="204">switch</text>
+  </g>
+  <rect x="30" y="236" width="150" height="34" rx="5" fill="#fef3c7" stroke="#d97706"/>
+  <text x="105" y="258" text-anchor="middle">palazzetti.write</text>
+  <!-- lab server -->
+  <rect x="30" y="280" width="150" height="30" rx="5" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="105" y="300" text-anchor="middle">lab_server :6638</text>
+  <!-- hub -->
+  <rect x="250" y="90" width="180" height="150" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <text x="340" y="112" text-anchor="middle" font-weight="bold">palazzetti hub</text>
+  <text x="340" y="138" text-anchor="middle">request queue</text>
+  <text x="340" y="158" text-anchor="middle">echo / timeout / retry</text>
+  <text x="340" y="178" text-anchor="middle">micronova.h codec</text>
+  <text x="340" y="198" text-anchor="middle">statistics</text>
+  <!-- uart -->
+  <rect x="460" y="140" width="76" height="50" rx="5" fill="#fff" stroke="#444"/>
+  <text x="498" y="162" text-anchor="middle">UART0</text>
+  <text x="498" y="180" text-anchor="middle" font-size="11">1200 8N2</text>
+  <!-- arrows entities -> hub -->
+  <g stroke="#444" fill="none" marker-end="url(#a)">
+    <path d="M180,67 L250,120"/>
+    <path d="M180,111 L250,140"/>
+    <path d="M180,155 L250,160"/>
+    <path d="M180,199 L250,180"/>
+    <path d="M180,253 L250,210"/>
+    <path d="M180,295 L250,230"/>
+    <path d="M430,165 L460,165"/>
+    <path d="M536,165 L600,165"/>
+  </g>
+  <!-- adapter + stove -->
+  <rect x="600" y="140" width="70" height="50" rx="5" fill="#fff" stroke="#444"/>
+  <text x="635" y="162" text-anchor="middle">1-wire</text>
+  <text x="635" y="180" text-anchor="middle">adapter</text>
+  <path d="M670,165 L700,165" stroke="#444" marker-end="url(#a)"/>
+  <rect x="700" y="130" width="50" height="70" rx="5" fill="#fee2e2" stroke="#dc2626"/>
+  <text x="725" y="170" text-anchor="middle">stove</text>
+  <!-- external -->
+  <text x="600" y="60" fill="#555">Home Assistant ⇄ API</text>
+  <text x="600" y="300" fill="#555">plz (TCP) ⇄ lab_server</text>
+  <path d="M598,296 L190,296" stroke="#16a34a" stroke-dasharray="4,3" marker-end="url(#a)"/>
+  <path d="M598,56 L190,62" stroke="#2563eb" stroke-dasharray="4,3" marker-end="url(#a)"/>
+</svg>

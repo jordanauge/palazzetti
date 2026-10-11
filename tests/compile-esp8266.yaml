@@ -1,0 +1,66 @@
+# Compile test: exercises every platform and action of the component.
+# make test-compile
+packages:
+  base: !include ../example/palazzetti-base.yaml
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [palazzetti]
+
+palazzetti:
+  id: stove
+  # Synthetic compile-only fixture, NOT evidence for writes on a physical stove.
+  write_allowlist:
+    - memory: eeprom
+      address: 78
+      min_value: 10
+      max_value: 30
+      evidence: synthetic compile fixture; never flash this configuration
+
+sensor:
+  - platform: palazzetti
+    name: Fumes temperature
+    address: 0x42
+    unit_of_measurement: °C
+  - platform: palazzetti
+    name: Signed 16-bit
+    memory: eeprom
+    address: 0x100
+    encoding: int16_le
+    filters:
+      - multiply: 0.1
+
+text_sensor:
+  - platform: palazzetti
+    name: Power state
+    address: 0xF9
+    map:
+      0x1A: "off"
+      0x4B: working
+
+number:
+  - platform: palazzetti
+    name: Target temperature
+    memory: eeprom
+    address: 78
+    min_value: 10
+    max_value: 30
+
+switch:
+  - platform: palazzetti
+    name: Raw switch
+    address: 0x21
+    on_value: 1
+    off_value: 6
+    off_states: [0, 7, 8]
+
+button:
+  - platform: template
+    name: Write test
+    on_press:
+      - palazzetti.write:
+          memory: eeprom
+          address: 78
+          value: !lambda "return 21;"

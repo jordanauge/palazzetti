@@ -1,0 +1,49 @@
+# Board profile used by a community JavaScript controller for "P937" Micronova boards.
+profile: micronova-p937
+title: Micronova P937 board
+extends: micronova-common
+sources:
+  p937: Community JavaScript Micronova controller, P937 profile (collected in 2020 notes)
+fields:
+  - id: status
+    mem: ram
+    addr: 0x21
+    status: reported
+    sources: [p937]
+  - id: room_temperature
+    mem: ram
+    addr: 0x01
+    scale: 0.5
+    status: reported
+    sources: [p937]
+  - id: probe_temperature
+    mem: ram
+    addr: 0x44
+    name: Probe temperature
+    unit: °C
+    status: reported
+    sources: [p937]
+  - id: target_temperature
+    mem: eeprom
+    addr: 0x7D
+    status: reported
+    sources: [p937]
+  - id: power_setting
+    mem: eeprom
+    addr: 0x7F
+    status: reported
+    sources: [p937]
+  - id: fan_left_setting
+    mem: eeprom
+    addr: 0x81
+    name: Left ambient fan setting
+    access: rw
+    status: reported
+    sources: [p937]
+  - id: fan_right_setting
+    mem: eeprom
+    addr: 0x82
+    name: Right ambient fan setting
+    access: rw
+    status: reported
+    sources: [p937]

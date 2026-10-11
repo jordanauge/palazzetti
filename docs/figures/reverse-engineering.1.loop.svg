@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 250" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#444"/></marker>
+  </defs>
+  <rect width="760" height="250" fill="#fff"/>
+  <g stroke="#444" fill="#dbeafe">
+    <rect x="20" y="40" width="120" height="56" rx="6"/>
+    <rect x="180" y="40" width="120" height="56" rx="6" fill="#fef3c7"/>
+    <rect x="340" y="40" width="120" height="56" rx="6" fill="#ede9fe"/>
+    <rect x="500" y="40" width="120" height="56" rx="6" fill="#fee2e2"/>
+    <rect x="340" y="160" width="120" height="56" rx="6" fill="#dcfce7"/>
+    <rect x="560" y="160" width="180" height="56" rx="6" fill="#f3f4f6"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="80" y="64" font-weight="bold">watch / dump</text>
+    <text x="80" y="82" font-size="11">baseline, changes</text>
+    <text x="240" y="64" font-weight="bold">mark</text>
+    <text x="240" y="82" font-size="11">what was done / seen</text>
+    <text x="400" y="64" font-weight="bold">diff / analyze</text>
+    <text x="400" y="82" font-size="11">candidates, η²</text>
+    <text x="560" y="64" font-weight="bold">write</text>
+    <text x="560" y="82" font-size="11">controlled test</text>
+    <text x="400" y="184" font-weight="bold">maps/*.yaml</text>
+    <text x="400" y="202" font-size="11">status, sources</text>
+    <text x="650" y="184" font-weight="bold">make gen</text>
+    <text x="650" y="202" font-size="11">memory-map.md + ESPHome entities</text>
+  </g>
+  <g stroke="#444" fill="none" marker-end="url(#a)">
+    <path d="M140,68 L180,68"/>
+    <path d="M300,68 L340,68"/>
+    <path d="M460,68 L500,68"/>
+    <path d="M400,96 L400,160"/>
+    <path d="M560,96 L440,160"/>
+    <path d="M460,188 L560,188"/>
+    <path d="M620,58 C700,20 60,0 70,40"/>
+  </g>
+  <text x="380" y="18" text-anchor="middle" font-size="11" fill="#555">next hypothesis</text>
+  <text x="20" y="240" font-size="11" fill="#555">Every step appends to the same session (JSONL) and can be run by a person or an agent.</text>
+</svg>

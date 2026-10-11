@@ -1,0 +1,107 @@
+# Generic Micronova controller layout, as used by the ESPHome built-in `micronova`
+# component defaults and most community projects. Many Palazzetti boards are NOT laid
+# out like this (see palazzetti-ecofire-lara.yaml): treat every entry as "reported".
+#
+# Field keys: see maps/README.md.
+profile: micronova-common
+title: Micronova (generic, community consensus)
+sources:
+  esphome-micronova: "ESPHome Micronova component defaults: https://esphome.io/components/micronova/"
+  stufapellet: "StufaPellet community protocol/project: https://stufapellet.forumcommunity.net/?t=53061907 (original archive retained privately)"
+  forum: Community table of a Micronova board (see micronova-forum.yaml)
+fields:
+  - id: room_temperature
+    mem: ram
+    addr: 0x01
+    name: Room temperature
+    unit: °C
+    scale: 0.5
+    status: reported
+    sources: [esphome-micronova, stufapellet]
+  - id: water_temperature
+    mem: ram
+    addr: 0x03
+    name: Water temperature (hydro stoves)
+    unit: °C
+    scale: 0.5
+    status: reported
+    sources: [esphome-micronova, stufapellet]
+  - id: auger_time
+    mem: ram
+    addr: 0x0D
+    name: Auger (screw) on-time
+    status: reported
+    sources: [forum]
+  - id: status
+    mem: ram
+    addr: 0x21
+    name: Stove state
+    access: rw
+    status: reported
+    sources: [esphome-micronova, stufapellet]
+    values:
+      0: "off"
+      1: start
+      2: pellet loading
+      3: ignition
+      4: working
+      5: brazier cleaning
+      6: final cleaning
+      7: standby
+      8: no pellet alarm
+      9: ignition failure alarm
+      10: undefined alarm
+    notes: Writing 0x01 switches on, 0x06 switches off (frames 80 21 01 A2 / 80 21 06 A7).
+  - id: power_actual
+    mem: ram
+    addr: 0x34
+    name: Actual power level
+    status: reported
+    sources: [esphome-micronova, stufapellet]
+  - id: fumes_fan_speed
+    mem: ram
+    addr: 0x37
+    name: Fumes extractor speed
+    unit: rpm
+    scale: 10
+    status: reported
+    sources: [esphome-micronova]
+    notes: rpm = value × 10 + model specific offset (ESPHome `fan_rpm_offset`), 0 when stopped.
+  - id: water_temperature_alt
+    mem: ram
+    addr: 0x3B
+    name: Water temperature (alternate address)
+    unit: °C
+    scale: 0.5
+    status: reported
+    sources: [esphome-micronova]
+  - id: water_pressure
+    mem: ram
+    addr: 0x3C
+    name: Water pressure
+    unit: bar
+    scale: 0.1
+    status: reported
+    sources: [esphome-micronova]
+  - id: fumes_temperature
+    mem: ram
+    addr: 0x5A
+    name: Fumes temperature
+    unit: °C
+    status: reported
+    sources: [esphome-micronova, stufapellet]
+  - id: target_temperature
+    mem: eeprom
+    addr: 0x7D
+    name: Thermostat set point
+    unit: °C
+    access: rw
+    status: reported
+    sources: [esphome-micronova]
+  - id: power_setting
+    mem: eeprom
+    addr: 0x7F
+    name: Power level setting
+    access: rw
+    status: reported
+    sources: [esphome-micronova]

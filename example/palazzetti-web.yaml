@@ -1,0 +1,106 @@
+# Optional ESPHome web dashboard and native API read service; no custom web application.
+web_server:
+  port: 80
+  version: 3
+  auth:
+    username: !secret web_username
+    password: !secret web_password
+
+time:
+  - platform: sntp
+    id: network_time
+
+switch:
+  - platform: template
+    id: stove_write_mode
+    name: Stove write mode
+    entity_category: config
+    restore_mode: ALWAYS_OFF
+    lambda: return id(stove).is_write_enabled();
+    turn_on_action:
+      - lambda: id(stove).set_write_enabled(true);
+    turn_off_action:
+      - lambda: id(stove).set_write_enabled(false);
+  - platform: template
+    name: EEPROM write permission
+    entity_category: config
+    restore_mode: ALWAYS_OFF
+    lambda: return id(stove).is_eeprom_write_enabled();
+    turn_on_action:
+      - lambda: |-
+          if (!id(stove).is_write_enabled()) {
+            ESP_LOGW("palazzetti", "Enable stove write mode before EEPROM permission");
+            return;
+          }
+          id(stove).set_eeprom_write_enabled(true);
+    turn_off_action:
+      - lambda: id(stove).set_eeprom_write_enabled(false);
+
+text_sensor:
+  - platform: template
+    name: Network clock
+    update_interval: 30s
+    lambda: |-
+      auto now = id(network_time).now();
+      if (!now.is_valid()) return std::string("Not synchronized");
+      return now.strftime("%Y-%m-%d %H:%M:%S");
+  - platform: template
+    id: lab_read_result
+    name: Last API memory read
+    update_interval: never
+  - platform: template
+    name: Stove control availability
+    update_interval: 60s
+    lambda: |-
+      return std::string("Lara on/off and schedule writes unverified. Use stove panel; web settings are read-only.");
+
+sensor:
+  - platform: template
+    name: Confirmed write rules
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: return id(stove).write_rule_count();
+  - platform: template
+    name: Bus successful reads
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: return id(stove).n_ok();
+  - platform: template
+    name: Bus timeouts
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: return id(stove).n_timeout();
+  - platform: template
+    name: Bus checksum failures
+    entity_category: diagnostic
+    update_interval: 30s
+    lambda: return id(stove).n_bad();
+
+api:
+  actions:
+    - action: read_memory
+      variables:
+        memory: int
+        address: int
+      then:
+        - lambda: |-
+            if ((memory != 0 && memory != 1) || address < 0 || address > 0x1FFF) {
+              ESP_LOGW("palazzetti", "Invalid API read memory/address");
+              id(lab_read_result).publish_state("error: memory must be 0 (RAM) or 1 (EEPROM), address 0..8191");
+              return;
+            }
+            auto mem = memory == 0 ? micronova::Memory::RAM : micronova::Memory::EEPROM;
+            bool queued = id(stove).read(mem, address, [memory, address](const esphome::palazzetti::Result &result) {
+              char text[150];
+              snprintf(text, sizeof(text), "%s 0x%03X: valid=%d %s value=%s reply_len=%u reply=%02X%02X attempts=%u ms=%u",
+                memory == 0 ? "ram" : "eeprom", address,
+                result.ok,
+                result.timeout ? "timeout" : micronova::reply_check_str(result.check),
+                result.ok ? str_sprintf("0x%02X", result.value).c_str() : "--",
+                result.reply_len, result.reply[0], result.reply[1], result.attempts, (unsigned) result.elapsed_ms);
+              id(lab_read_result).publish_state(text);
+            });
+            if (!queued) {
+              ESP_LOGW("palazzetti", "API read rejected: queue full");
+              id(lab_read_result).publish_state("error: queue full");
+            }

@@ -1,0 +1,66 @@
+# Board, network and bus. Stove entities come from a separate package
+# (see palazzetti-ecofire-lara.yaml), generated from maps/ with `plz gen-esphome`.
+substitutions:
+  name: palazzetti
+  friendly_name: Palazzetti stove
+  board: nodemcuv2
+  # Hardware UART0 on its alternate pins (Serial.swap()): keeps GPIO1/3 for USB flashing.
+  # GPIO15 must be low at boot: keep its pull-down, do not let the adapter pull it high.
+  tx_pin: GPIO15  # D8
+  rx_pin: GPIO13  # D7
+  lab_allow_write: "false"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp8266:
+  board: ${board}
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [palazzetti]
+
+# Logs go to UART1 (GPIO2, TX only) so that UART0 is free for the stove.
+logger:
+  hardware_uart: UART1
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: ${name} fallback
+    password: !secret fallback_password
+
+captive_portal:
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+uart:
+  id: stove_uart
+  tx_pin: ${tx_pin}
+  rx_pin: ${rx_pin}
+  baud_rate: 1200
+  stop_bits: 2
+
+palazzetti:
+  id: stove
+  uart_id: stove_uart
+  # The 1-wire adapter loops our own TX back on RX: "auto" detects it on the first frame.
+  echo: auto
+  lab_server:
+    port: 6638
+    allow_write: ${lab_allow_write}
+
+sensor:
+  - platform: wifi_signal
+    name: WiFi signal
+    update_interval: 60s

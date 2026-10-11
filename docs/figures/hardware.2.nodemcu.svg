@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" role="img" aria-labelledby="title desc">
+  <title id="title">NodeMCU V3 ESP-12F to one-wire adapter</title>
+  <desc id="desc">D8 GPIO15 sends to adapter transmit input. D7 GPIO13 receives from adapter receive output. Common signal ground, optional adapter 3.3V supply, USB power. Stove connector pins unverified.</desc>
+  <defs>
+    <style>
+      text { font-family: sans-serif; fill: #243746; }
+      .title { font-size: 24px; font-weight: bold; }
+      .label { font-size: 18px; }
+      .note { font-size: 16px; }
+      .board { fill: #eef5fa; stroke: #3498DB; stroke-width: 3; }
+      .adapter { fill: #eaf9f0; stroke: #2ECC71; stroke-width: 3; }
+      .wire { fill: none; stroke: #3498DB; stroke-width: 3; }
+      .ground { stroke: #95A5A6; stroke-width: 3; }
+      .optional { stroke: #E67E22; stroke-width: 2; stroke-dasharray: 6 5; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#3498DB"/></marker>
+  </defs>
+  <text x="40" y="40" class="title">ESP-12F NodeMCU Devkit V3: use D8 / D7, not USB TX / RX</text>
+  <rect x="40" y="75" width="310" height="290" rx="12" class="board"/>
+  <text x="65" y="110" class="title">NodeMCU V3</text>
+  <text x="65" y="165" class="label">D8 / GPIO15 / UART TX</text>
+  <text x="65" y="225" class="label">D7 / GPIO13 / UART RX</text>
+  <text x="65" y="285" class="label">GND</text>
+  <text x="65" y="335" class="label">3V3 (optional supply)</text>
+  <rect x="530" y="75" width="310" height="290" rx="12" class="adapter"/>
+  <text x="555" y="110" class="title">Your 1-wire adapter</text>
+  <text x="555" y="165" class="label">Transmit INPUT</text>
+  <text x="555" y="225" class="label">Receive OUTPUT</text>
+  <text x="555" y="285" class="label">Signal GND</text>
+  <text x="555" y="335" class="label">LV supply, if required</text>
+  <path d="M350 160 H530" class="wire" marker-end="url(#arrow)"/>
+  <path d="M530 220 H350" class="wire" marker-end="url(#arrow)"/>
+  <path d="M350 280 H530" class="ground"/>
+  <path d="M350 330 H530" class="optional"/>
+  <path d="M840 190 H950" class="wire"/>
+  <text x="850" y="160" class="note">Stove bus</text>
+  <text x="850" y="220" class="note">Pin: VERIFY</text>
+  <text x="40" y="405" class="label">USB powers / flashes devkit. Disconnect stove during flashing.</text>
+  <text x="40" y="440" class="note">GPIO15 must stay LOW at reset. ESP pins are not 5V tolerant. Never use +/-12V RS232.</text>
+  <text x="40" y="475" class="note">Verify signal ground / isolation before joining grounds. Do not use unverified stove power pins.</text>
+</svg>

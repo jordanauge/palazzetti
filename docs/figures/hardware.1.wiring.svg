@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 520" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .title { font-size: 22px; font-weight: bold; fill: #2C3E50; }
+      .box { stroke-width: 2; rx: 10; }
+      .stove { fill: #FDEBD0; stroke: #E67E22; }
+      .plug { fill: #EAECEE; stroke: #95A5A6; }
+      .adapter { fill: #D5F5E3; stroke: #2ECC71; }
+      .esp { fill: #D6EAF8; stroke: #3498DB; }
+      .head { font-size: 17px; font-weight: bold; fill: #2C3E50; }
+      .label { font-size: 13px; fill: #2C3E50; }
+      .small { font-size: 11px; fill: #566573; }
+      .todo { font-size: 12px; fill: #C0392B; font-style: italic; }
+      .wire { stroke-width: 3; fill: none; }
+      .bus { stroke: #E67E22; }
+      .tx { stroke: #3498DB; }
+      .rx { stroke: #9B59B6; }
+      .gnd { stroke: #2C3E50; }
+      .vcc { stroke: #C0392B; }
+    </style>
+  </defs>
+  <text x="550" y="34" text-anchor="middle" class="title">Stove → plug → 1-wire adapter → NodeMCU V3 ESP-12F</text>
+
+  <rect x="30" y="70" width="210" height="360" class="box stove"/>
+  <text x="135" y="100" text-anchor="middle" class="head">Micronova board</text>
+  <text x="135" y="120" text-anchor="middle" class="small">Palazzetti Ecofire Lara</text>
+  <text x="50" y="180" class="label">SERIAL (1-wire, 5 V)</text>
+  <text x="50" y="250" class="label">Supply: NOT CONNECTED</text>
+  <text x="50" y="320" class="label">GND</text>
+  <text x="50" y="400" class="todo">connector pinout TO VERIFY</text>
+
+  <rect x="290" y="70" width="160" height="360" class="box plug"/>
+  <text x="370" y="100" text-anchor="middle" class="head">Plug / cable</text>
+  <text x="370" y="120" text-anchor="middle" class="small">"RS232" (DB9) plug on the device</text>
+  <text x="370" y="400" text-anchor="middle" class="todo">pin numbers TO VERIFY</text>
+
+  <rect x="500" y="70" width="230" height="360" class="box adapter"/>
+  <text x="615" y="100" text-anchor="middle" class="head">1-wire adapter</text>
+  <text x="615" y="120" text-anchor="middle" class="small">splits the bus into TX + RX, 5 V ↔ 3.3 V</text>
+  <text x="520" y="170" class="label">BUS</text>
+  <text x="640" y="160" class="label">TX in</text>
+  <text x="640" y="205" class="label">RX out</text>
+  <text x="520" y="250" class="label">5 V</text>
+  <text x="520" y="320" class="label">GND</text>
+  <text x="615" y="400" text-anchor="middle" class="small">see adapter.md</text>
+
+  <rect x="790" y="70" width="280" height="360" class="box esp"/>
+  <text x="930" y="100" text-anchor="middle" class="head">NodeMCU V3 ESP-12F</text>
+  <text x="930" y="120" text-anchor="middle" class="small">ESP8266, UART0 swapped (Serial.swap)</text>
+  <text x="810" y="160" class="label">D8 / GPIO15 — UART0 TX</text>
+  <text x="810" y="205" class="label">D7 / GPIO13 — UART0 RX</text>
+  <text x="810" y="250" class="label">USB power (independent)</text>
+  <text x="810" y="320" class="label">G (GND)</text>
+  <text x="810" y="365" class="label">D4 / GPIO2 — UART1 TX (logs)</text>
+  <text x="810" y="400" class="small">USB (GPIO1/3) stays free for flashing</text>
+
+  <path d="M240 175 H500" class="wire bus"/>
+  <path d="M240 315 H500" class="wire gnd"/>
+  <path d="M730 155 H790" class="wire tx"/>
+  <path d="M730 200 H790" class="wire rx"/>
+  <path d="M730 315 H790" class="wire gnd"/>
+
+  <g transform="translate(40,460)">
+    <line x1="0" y1="0" x2="30" y2="0" class="wire bus"/><text x="40" y="5" class="label">1-wire bus (5 V)</text>
+    <line x1="190" y1="0" x2="220" y2="0" class="wire tx"/><text x="230" y="5" class="label">TX 3.3 V</text>
+    <line x1="330" y1="0" x2="360" y2="0" class="wire rx"/><text x="370" y="5" class="label">RX 3.3 V</text>
+    <text x="480" y="5" class="label">USB power</text>
+    <line x1="590" y1="0" x2="620" y2="0" class="wire gnd"/><text x="630" y="5" class="label">GND</text>
+    <text x="720" y="5" class="todo">Verify pinout, signal ground and isolation first</text>
+  </g>
+</svg>

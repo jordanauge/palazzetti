@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 560" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .title { font-size: 22px; font-weight: bold; fill: #2C3E50; }
+      .head { font-size: 18px; font-weight: bold; fill: #2C3E50; }
+      .label { font-size: 13px; fill: #2C3E50; }
+      .small { font-size: 12px; fill: #566573; }
+      .tag { font-size: 13px; font-weight: bold; }
+      .micronova { fill: #D6EAF8; stroke: #3498DB; stroke-width: 3; }
+      .fumis { fill: #F2F3F4; stroke: #95A5A6; stroke-width: 2; stroke-dasharray: 8 5; }
+      .box { fill: #F4ECF7; stroke: #9B59B6; stroke-width: 2; }
+      .impl { fill: #D5F5E3; stroke: #2ECC71; stroke-width: 2; }
+      .arrow { stroke: #566573; stroke-width: 2; fill: none; marker-end: url(#a); }
+      .dashed { stroke: #95A5A6; stroke-width: 2; fill: none; stroke-dasharray: 6 4; marker-end: url(#a); }
+    </style>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#566573"/>
+    </marker>
+  </defs>
+
+  <text x="550" y="34" text-anchor="middle" class="title">Palazzetti controller boards: two families, two protocols</text>
+
+  <!-- Micronova -->
+  <rect x="40" y="60" width="480" height="270" rx="12" class="micronova"/>
+  <text x="280" y="90" text-anchor="middle" class="head">Micronova protocol</text>
+  <text x="60" y="120" class="label">• older Palazzetti, incl. Ecofire Mini / Lara</text>
+  <text x="76" y="138" class="small">board 00 252010 1 (ref. 895705170, units 10/2003–01/2008)</text>
+  <text x="60" y="162" class="label">• single wire, half duplex, 5 V</text>
+  <text x="60" y="184" class="label">• 1200 baud, 8N2</text>
+  <text x="60" y="206" class="label">• read: 2-byte request, 2-byte reply</text>
+  <text x="60" y="228" class="label">• write: 4-byte request (with checksum)</text>
+  <text x="60" y="250" class="label">• 8-bit addresses in RAM and EEPROM</text>
+  <text x="60" y="272" class="label">• also Extraflame, MCZ, Laminox, Artel…</text>
+  <rect x="300" y="285" width="200" height="32" rx="8" class="impl"/>
+  <text x="400" y="306" text-anchor="middle" class="tag" fill="#1E8449">IMPLEMENTED HERE</text>
+
+  <!-- Fumis -->
+  <rect x="580" y="60" width="480" height="270" rx="12" class="fumis"/>
+  <text x="820" y="90" text-anchor="middle" class="head">Fumis protocol (Fumis Alpha)</text>
+  <text x="600" y="120" class="label">• newer Palazzetti; Jotul, Godin, TurboFonte,</text>
+  <text x="616" y="138" class="small">Fonte Flamme, Invicta, Casatelli, Alpis, HETA</text>
+  <text x="600" y="162" class="label">• RJ11/RJ12 link to the control panel</text>
+  <text x="600" y="184" class="label">• 38400 baud</text>
+  <text x="600" y="206" class="label">• fixed 11-byte frames</text>
+  <text x="600" y="228" class="label">• 16-bit addresses (0x2000–0x2100…)</text>
+  <text x="600" y="250" class="label">• open implementation: Domochip/WPalaControl</text>
+  <rect x="840" y="285" width="200" height="32" rx="8" fill="#FDFEFE" stroke="#95A5A6" stroke-width="2"/>
+  <text x="940" y="306" text-anchor="middle" class="tag" fill="#7F8C8D">NOT IMPLEMENTED</text>
+
+  <!-- Connection Box -->
+  <rect x="300" y="400" width="500" height="120" rx="12" class="box"/>
+  <text x="550" y="430" text-anchor="middle" class="head">Palazzetti Connection Box</text>
+  <text x="550" y="456" text-anchor="middle" class="label">same HTTP API for both: /cgi-bin/sendmsg.lua?cmd=GET STAT…</text>
+  <text x="550" y="478" text-anchor="middle" class="label">Micronova side: reads a model code (RAM 0x0D),</text>
+  <text x="550" y="496" text-anchor="middle" class="label">then picks an address set (micronova_code in the firmware)</text>
+
+  <path d="M 420 400 L 280 335" class="arrow"/>
+  <path d="M 680 400 L 820 335" class="dashed"/>
+</svg>

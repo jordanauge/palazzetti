@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EEPROM hex map</title>
+<style>
+:root{color-scheme:dark;--bg:#101722;--panel:#1b2636;--text:#e6edf3;--muted:#a8b5c5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,sans-serif}
+header,main{max-width:1450px;margin:auto;padding:20px}a{color:#8ac7ff}h1{margin:8px 0}
+.controls{display:flex;gap:15px;flex-wrap:wrap;align-items:end;margin:20px 0}label{display:grid;gap:5px}
+select,input,button{font:inherit;color:inherit;background:var(--panel);border:1px solid #536277;border-radius:5px;padding:8px}
+.layout{display:grid;grid-template-columns:minmax(440px,1fr) minmax(280px,420px);gap:22px}
+.dump-wrap{overflow:auto}.dump{border-collapse:separate;border-spacing:3px;font-family:ui-monospace,monospace}
+.dump th{color:var(--muted);font-size:12px;padding:5px}.dump td{padding:0}
+.byte{width:100%;min-width:33px;padding:7px 4px;border:1px solid #465269;background:#233043;border-radius:4px;font-family:inherit}
+.confirmed{border-bottom:4px solid #2ecc71}.observed{border-bottom:4px solid #3498db}
+.reported{border-bottom:4px solid #a989db}.hypothesis{border-bottom:4px solid #e6a84c}
+.unknown{border-bottom:4px solid #95a5a6}.refuted{border-bottom:4px solid #ef7171}
+.selected,.byte:focus-visible{outline:2px solid white;background:#40526b}.dim{opacity:.25}
+.legend{display:flex;gap:10px;flex-wrap:wrap}.legend span{padding:4px 7px;background:var(--panel)}
+#details{position:sticky;top:12px;align-self:start;max-height:90vh;overflow:auto;padding:18px;background:var(--panel);border-radius:8px}
+.muted,small{color:var(--muted)}.field{border-top:1px solid #536277;padding:10px 0}.field p{margin:5px 0}
+.field h3{margin:5px 0;font-size:16px}code{overflow-wrap:anywhere}pre{white-space:pre-wrap;font-size:13px}
+.plot{width:100%;height:100px;border:1px solid #536277}.plot polyline{fill:none;stroke:#8ac7ff;stroke-width:2}
+#tooltip{position:fixed;z-index:10;max-width:340px;padding:10px;border:1px solid #8196ac;border-radius:6px;background:#101722;pointer-events:none;white-space:pre-line;font:13px system-ui}
+[hidden]{display:none!important}.error{color:#ff9494}
+@media(max-width:850px){.layout{display:block}#details{position:static;max-height:none;margin-top:20px}header,main{padding:12px}}
+</style>
+<header>
+<nav><a href="https://github.com/jordanauge/palazzetti">Repository</a> · <a href="https://github.com/jordanauge/palazzetti/blob/main/docs/memory-map.md">Map documentation</a> ·
+<a href="memory-ram.html">RAM</a> · <a href="memory-eeprom.html">EEPROM</a></nav>
+<h1>EEPROM hex map</h1>
+<p>Read-only Micronova memory atlas. Hover or focus a byte for a quick description; click to pin its details.
+Multi-byte regions highlight together; members show their offset within the region.</p>
+<p class="muted">Unknown bytes are <code>??</code>, never fabricated zeroes. Capture bytes are each address's last
+valid observation, not a simultaneous snapshot. Failed reads are excluded. Generic profiles are not Lara maps.</p>
+<div class="controls">
+<label>Board profile<select id="profile"></select></label>
+<label>Capture<select id="capture"></select></label>
+<label>Find field / address<input id="search" placeholder="temperature, chrono, 0xF9"></label>
+</div>
+<p id="coverage"></p><div id="legend" class="legend"></div>
+<noscript>This interactive map requires JavaScript. See the linked Markdown map for a text version.</noscript>
+<p id="error" class="error" role="alert" hidden></p>
+</header>
+<main class="layout">
+<div class="dump-wrap"><table class="dump" aria-label="Memory bytes"><thead id="head"></thead><tbody id="grid"></tbody></table></div>
+<aside id="details" aria-live="polite"><h2>Inspect a byte</h2><p>Hover, focus or click the hex grid.</p></aside>
+</main>
+<div id="tooltip" role="tooltip" hidden></div>
+<script id="map-data" type="application/json">{"memory": "eeprom", "profiles": [{"id": "palazzetti-ecofire-lara", "title": "Palazzetti Ecofire Lara", "sources": {"notes-2020": "Manual observations (2020), private repo notes/2020-palazzetti-repo", "dump-2020": "RAM capture 2020-02-10..12, private repo dumps/2020-02-10-ram", "dump-2020-02-08": "Timestamped RAM polling in private reverse repo legacy/2020-backup/out2 (2020-02-08, 1.76 h); successful callbacks only, raw checksums unavailable"}, "fields": [{"id": "chrono_programs", "mem": "eeprom", "addr": 59, "count": 18, "name": "Chrono programs 1\u20136, 3 bytes each (start, stop, days)", "access": "rw", "status": "hypothesis", "sources": ["notes-2020"], "notes": "Triplet layout and start/stop byte encoding not decoded yet; EEPROM 62 went 0x43\u21920x42 and 63 went 0x54\u21920x57 while editing a program.", "members": [{"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "program_1", "name": "Program 1", "byte_offset": 0, "count": 3, "members": [{"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "start", "name": "Start time (encoding unknown)", "byte_offset": 0, "addr": 59, "width": 1, "members": []}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "stop", "name": "Stop time (encoding unknown)", "byte_offset": 1, "addr": 60, "width": 1, "members": []}, {"status": "observed", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "days", "name": "Day selection", "byte_offset": 2, "values": {"0": "week", "1": "mon-fri", "2": "sat-sun", "3": "monday", "4": "tuesday", "5": "wednesday", "6": "thursday", "7": "friday", "8": "saturday", "9": "sunday"}, "addr": 61, "width": 1, "members": []}], "addr": 59, "width": 3}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "program_2", "name": "Program 2 (hypothesized triplet)", "byte_offset": 3, "count": 3, "members": [{"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "start", "name": "Start time (encoding unknown)", "byte_offset": 0, "addr": 62, "width": 1, "members": []}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "stop", "name": "Stop time (encoding unknown)", "byte_offset": 1, "addr": 63, "width": 1, "members": []}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "days", "name": "Day selection (unverified)", "byte_offset": 2, "addr": 64, "width": 1, "members": []}], "addr": 62, "width": 3}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "program_3", "name": "Program 3 (hypothesized triplet)", "byte_offset": 6, "count": 3, "members": [{"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "start", "name": "Start time (encoding unknown)", "byte_offset": 0, "addr": 65, "width": 1, "members": []}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "stop", "name": "Stop time (encoding unknown)", "byte_offset": 1, "addr": 66, "width": 1, "members": []}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "days", "name": "Day selection (unverified)", "byte_offset": 2, "addr": 67, "width": 1, "members": []}], "addr": 65, "width": 3}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "program_4", "name": "Program 4 (hypothesized triplet)", "byte_offset": 9, "count": 3, "members": [{"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "start", "name": "Start time (encoding unknown)", "byte_offset": 0, "addr": 68, "width": 1, "members": []}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "stop", "name": "Stop time (encoding unknown)", "byte_offset": 1, "addr": 69, "width": 1, "members": []}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "days", "name": "Day selection (unverified)", "byte_offset": 2, "addr": 70, "width": 1, "members": []}], "addr": 68, "width": 3}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "program_5", "name": "Program 5 (hypothesized triplet)", "byte_offset": 12, "count": 3, "members": [{"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "start", "name": "Start time (encoding unknown)", "byte_offset": 0, "addr": 71, "width": 1, "members": []}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "stop", "name": "Stop time (encoding unknown)", "byte_offset": 1, "addr": 72, "width": 1, "members": []}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "days", "name": "Day selection (unverified)", "byte_offset": 2, "addr": 73, "width": 1, "members": []}], "addr": 71, "width": 3}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "program_6", "name": "Program 6 (hypothesized triplet)", "byte_offset": 15, "count": 3, "members": [{"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "start", "name": "Start time (encoding unknown)", "byte_offset": 0, "addr": 74, "width": 1, "members": []}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "stop", "name": "Stop time (encoding unknown)", "byte_offset": 1, "addr": 75, "width": 1, "members": []}, {"status": "hypothesis", "sources": ["notes-2020"], "mem": "eeprom", "access": "rw", "id": "days", "name": "Day selection (unverified)", "byte_offset": 2, "addr": 76, "width": 1, "members": []}], "addr": 74, "width": 3}], "write_status": "unverified", "width": 18}, {"id": "chrono_days", "mem": "eeprom", "addr": 61, "name": "Program 1 day selection", "access": "rw", "status": "observed", "sources": ["notes-2020"], "values": {"0": "week", "1": "mon-fri", "2": "sat-sun", "3": "monday", "4": "tuesday", "5": "wednesday", "6": "thursday", "7": "friday", "8": "saturday", "9": "sunday"}, "write_status": "unverified", "width": 1, "members": []}, {"id": "power_setting", "mem": "eeprom", "addr": 76, "name": "Power setting P", "access": "rw", "status": "observed", "sources": ["notes-2020"], "values": {"0": "auto", "1": "1", "2": "2", "3": "3", "4": "4"}, "write_status": "unverified", "width": 1, "members": []}, {"id": "fan_setting", "mem": "eeprom", "addr": 77, "name": "Ambient fan setting V", "access": "rw", "status": "observed", "sources": ["notes-2020"], "values": {"0": "auto", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5"}, "write_status": "unverified", "width": 1, "members": []}, {"id": "target_temperature", "mem": "eeprom", "addr": 78, "name": "Target temperature", "unit": "\u00b0C", "access": "rw", "status": "observed", "sources": ["notes-2020"], "notes": "Plain degrees, not BCD (26 \u2192 27 when raised by one).", "write_status": "unverified", "width": 1, "members": []}]}, {"id": "micronova-common", "title": "Micronova (generic, community consensus)", "sources": {"esphome-micronova": "ESPHome Micronova component defaults: https://esphome.io/components/micronova/", "stufapellet": "StufaPellet community protocol/project: https://stufapellet.forumcommunity.net/?t=53061907 (original archive retained privately)", "forum": "Community table of a Micronova board (see micronova-forum.yaml)"}, "fields": [{"id": "target_temperature", "mem": "eeprom", "addr": 125, "name": "Thermostat set point", "unit": "\u00b0C", "access": "rw", "status": "reported", "sources": ["esphome-micronova"], "write_status": "unverified", "width": 1, "members": []}, {"id": "power_setting", "mem": "eeprom", "addr": 127, "name": "Power level setting", "access": "rw", "status": "reported", "sources": ["esphome-micronova"], "write_status": "unverified", "width": 1, "members": []}]}, {"id": "micronova-forum", "title": "Micronova variant (stufapellet forum table)", "sources": {"esphome-micronova": "ESPHome Micronova component defaults: https://esphome.io/components/micronova/", "stufapellet": "StufaPellet community protocol/project: https://stufapellet.forumcommunity.net/?t=53061907 (original archive retained privately)", "forum": "Community Micronova table: https://stufapellet.forumcommunity.net/?t=53061907 (2020 notes retained privately; applicability unverified)"}, "fields": [{"id": "target_temperature", "mem": "eeprom", "addr": 125, "name": "Thermostat set point", "unit": "\u00b0C", "access": "rw", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "power_setting", "mem": "eeprom", "addr": 127, "name": "Power level setting", "access": "rw", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 1, "members": []}, {"id": "technical_parameters", "mem": "eeprom", "addr": 0, "count": 38, "name": "Technical parameters PG00\u2013PG15 / PF00\u2013PF20", "access": "rw", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 38, "members": []}, {"id": "user_parameters", "mem": "eeprom", "addr": 54, "count": 3, "name": "User parameters P100\u2013P102", "access": "rw", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 3, "members": []}, {"id": "chrono", "mem": "eeprom", "addr": 76, "count": 40, "name": "Chrono programs 1\u20134 (start/stop in minutes \u00f7 10, day flags)", "access": "rw", "status": "reported", "sources": ["forum"], "write_status": "unverified", "width": 40, "members": []}]}, {"id": "micronova-p937", "title": "Micronova P937 board", "sources": {"esphome-micronova": "ESPHome Micronova component defaults: https://esphome.io/components/micronova/", "stufapellet": "StufaPellet community protocol/project: https://stufapellet.forumcommunity.net/?t=53061907 (original archive retained privately)", "forum": "Community table of a Micronova board (see micronova-forum.yaml)", "p937": "Community JavaScript Micronova controller, P937 profile (collected in 2020 notes)"}, "fields": [{"id": "target_temperature", "mem": "eeprom", "addr": 125, "name": "Thermostat set point", "unit": "\u00b0C", "access": "rw", "status": "reported", "sources": ["p937"], "write_status": "unverified", "width": 1, "members": []}, {"id": "power_setting", "mem": "eeprom", "addr": 127, "name": "Power level setting", "access": "rw", "status": "reported", "sources": ["p937"], "write_status": "unverified", "width": 1, "members": []}, {"id": "fan_left_setting", "mem": "eeprom", "addr": 129, "name": "Left ambient fan setting", "access": "rw", "status": "reported", "sources": ["p937"], "write_status": "unverified", "width": 1, "members": []}, {"id": "fan_right_setting", "mem": "eeprom", "addr": 130, "name": "Right ambient fan setting", "access": "rw", "status": "reported", "sources": ["p937"], "write_status": "unverified", "width": 1, "members": []}]}, {"id": "palazzetti-connbox", "title": "Palazzetti Connection Box (firmware notes, 2020)", "sources": {"connbox-2020": "Connection Box firmware disassembly notes (2020), private repo notes/2020-palazzetti-repo/COMMANDS"}, "fields": [{"id": "parameters", "mem": "eeprom", "addr": 40, "count": 32, "name": "Technical parameters (GET PARM / SET PARM)", "access": "rw", "status": "reported", "sources": ["connbox-2020"], "notes": "Start address from the notes; length unknown (32 is a placeholder). Values above 201 noted as invalid.", "write_status": "unverified", "width": 32, "members": []}]}], "captures": [], "statuses": {"confirmed": "verified by a write/read round trip or by the manufacturer", "observed": "seen behaving as described on this stove (dump or live session)", "reported": "taken from a third-party source, not verified on this stove", "hypothesis": "plausible interpretation of observations, needs a targeted test", "unknown": "address of interest, meaning not understood", "refuted": "generic meaning checked and wrong for this stove"}}</script>
+<script>
+"use strict";
+const data = JSON.parse(document.getElementById("map-data").textContent);
+const el = id => document.getElementById(id);
+const hex = (n,width=2) => "0x"+n.toString(16).toUpperCase().padStart(width,"0");
+const date = t => new Date(t*1000).toISOString();
+const text = (tag,value,parent,className) => {
+  const node=document.createElement(tag); node.textContent=value;
+  if(className)node.className=className; parent.append(node); return node;
+};
+let profile, capture, regions, buttons=[], pinned=null, size=256;
+function flatten(fields,parents=[]){
+  return fields.flatMap(f=>[{...f,parents},...flatten(f.members,[...parents,f])]);
+}
+function fieldsAt(addr){return regions.filter(f=>addr>=f.addr && addr<f.addr+f.width);}
+function observation(addr){return capture?.bytes[data.memory+":"+addr];}
+function decoded(field){
+  const values=Array.from({length:field.width},(_,i)=>observation(field.addr+i)?.last);
+  if(values.some(v=>v===undefined))return "No complete valid value in this capture";
+  const encoding=field.encoding||"uint8";
+  if(field.width>2)return "Block bytes: "+values.map(v=>hex(v)).join(" ");
+  let raw=values[0];
+  if(encoding.includes("16")){
+    raw=encoding.endsWith("le") ? values[0]+256*values[1] : values[0]*256+values[1];
+    if(encoding.startsWith("int") && raw>=32768)raw-=65536;
+  }else if(encoding==="int8" && raw>=128)raw-=256;
+  else if(encoding==="bcd"){
+    if((raw&15)>9||(raw>>4)>9)return "Invalid BCD byte";
+    raw=(raw>>4)*10+(raw&15);
+  }
+  const scaled=raw*(field.scale??1)+(field.offset??0);
+  const label=field.values?.[raw];
+  return `Raw ${raw}; decoded ${scaled}${field.unit?" "+field.unit:""}${label?" ("+label+")":""}`;
+}
+function show(addr){
+  const panel=el("details");panel.replaceChildren();
+  text("h2",`${data.memory.toUpperCase()} ${hex(addr,4)} / ${addr}`,panel);
+  const matches=fieldsAt(addr), record=observation(addr);
+  if(!matches.length)text("p","Meaning unknown: no field mapped in this profile.",panel);
+  for(const f of matches){
+    const section=text("section","",panel,"field");
+    text("h3",f.name||f.id,section);
+    text("code",[...f.parents.map(p=>p.id),f.id].join("."),section);
+    text("p",`${hex(f.addr,4)}–${hex(f.addr+f.width-1,4)} · ${f.width} byte(s) · byte +${addr-f.addr}`,section);
+    text("p",`${f.status} · ${data.statuses[f.status]} · access ${f.access||"r"}`,section);
+    text("p",`Write certainty: ${f.write_status||"unverified"}${f.mem==="eeprom"?" · persistent EEPROM; separate permission required":""}`,section);
+    text("p",`Encoding ${f.encoding||"uint8"} · scale ${f.scale??1}${f.unit?" · "+f.unit:""}`,section);
+    if(f.notes)text("p",f.notes,section);
+    if(f.values)text("pre",Object.entries(f.values).map(([v,n])=>`${hex(Number(v))}: ${n}`).join("\n"),section);
+    if(capture)text("p",decoded(f),section);
+    if(f.members.length)text("pre",f.members.map(m=>`+${m.addr-f.addr}  ${m.name||m.id} (${m.width} byte(s))`).join("\n"),section);
+    for(const key of f.sources||[])text("small",`${key}: ${profile.sources[key]||"source description absent"}`,section);
+  }
+  const section=text("section","",panel,"field");
+  text("h3","Capture evidence",section);
+  if(capture?.notes)text("p",capture.notes,section);
+  if(!record || !record.n){
+    text("p",capture?"No valid observations at this address.":"No capture selected.",section);
+    if(record?.rejected)text("p",`${record.rejected} failed reads; FF sentinel is not a value.`,section);
+  }else{
+    text("p",`${record.n} valid reads; ${record.rejected} rejected; ${record.changes} changes; ${record.distinct} distinct values`,section);
+    text("p",`Last ${hex(record.last)} (${record.last}); range ${record.min}–${record.max}`,section);
+    text("p",`${date(record.first_t)} to ${date(record.last_t)}`,section);
+    const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("viewBox","0 0 400 100");svg.setAttribute("class","plot");
+    svg.setAttribute("role","img");svg.setAttribute("aria-label","Observed byte values over time");
+    const line=document.createElementNS(svg.namespaceURI,"polyline");
+    const dt=record.last_t-record.first_t||1, dv=record.max-record.min||1;
+    line.setAttribute("points",record.points.map(([t,v])=>`${5+390*(t-record.first_t)/dt},${95-90*(v-record.min)/dv}`).join(" "));
+    svg.append(line);section.append(svg);
+    text("small","Downsampled history; counts and value distributions use all valid observations.",section);
+    text("pre",record.histogram.map(([v,n])=>`${hex(v)} (${v}): ${n} reads`).join("\n"),section);
+  }
+  const related=matches.filter(f=>f.width>1);
+  buttons.forEach((b,i)=>b.classList.toggle("selected",i===addr||related.some(f=>i>=f.addr&&i<f.addr+f.width)));
+}
+function filter(){
+  const q=el("search").value.trim().toLowerCase();
+  buttons.forEach((b,addr)=>{
+    const content=[hex(addr,4),hex(addr),...fieldsAt(addr).flatMap(f=>[f.id,f.name,f.notes])].join(" ").toLowerCase();
+    b.classList.toggle("dim",!!q&&!content.includes(q));
+  });
+}
+function tooltip(event,addr){
+  const matches=fieldsAt(addr);
+  el("tooltip").textContent=`${hex(addr,4)}\n`+(matches.length?matches.map(f=>`${f.name||f.id} · ${f.status} · byte +${addr-f.addr}/${f.width}`).join("\n"):"Unknown");
+  el("tooltip").hidden=false;
+  el("tooltip").style.left=Math.max(8,Math.min(event.clientX+12,window.innerWidth-350))+"px";
+  el("tooltip").style.top=Math.max(8,Math.min(event.clientY+12,window.innerHeight-el("tooltip").offsetHeight-8))+"px";
+  if(pinned===null)show(addr);
+}
+function rebuild(){
+  profile=data.profiles[Number(el("profile").value)];regions=flatten(profile.fields);pinned=null;
+  const selected=el("capture").value;
+  capture=selected===""?null:data.captures[Number(selected)];
+  if(capture&&capture.profile!==profile.id)throw new Error("Capture/profile mismatch");
+  const observedAddresses=capture?Object.keys(capture.bytes).filter(k=>k.startsWith(data.memory+":")).map(k=>Number(k.split(":")[1])):[];
+  const mappedEnd=Math.max(255,...regions.map(f=>f.addr+f.width-1),...observedAddresses);
+  size=Math.ceil((mappedEnd+1)/16)*16;
+  el("head").innerHTML="<tr><th>Address</th>"+Array.from({length:16},(_,i)=>`<th>${i.toString(16).toUpperCase()}</th>`).join("")+"</tr>";
+  el("grid").replaceChildren();buttons=[];
+  for(let row=0;row<size;row+=16){
+    const tr=document.createElement("tr");text("th",hex(row,4),tr);
+    for(let i=row;i<row+16;i++){
+      const td=text("td","",tr), matches=fieldsAt(i);
+      const status=matches.length?matches[matches.length-1].status:"unknown";
+      const record=observation(i);
+      const b=text("button",record?.n?hex(record.last).slice(2):"??",td,"byte "+status);
+      b.type="button";b.dataset.address=i;
+      b.setAttribute("aria-label",`${hex(i,4)} ${matches.map(f=>f.name||f.id).join("; ")||"Unknown"}`);
+      b.addEventListener("pointermove",e=>tooltip(e,i));
+      b.addEventListener("pointerleave",()=>el("tooltip").hidden=true);
+      b.addEventListener("focus",()=>{if(pinned===null)show(i);});
+      b.addEventListener("click",()=>{pinned=i;show(i);});
+      b.addEventListener("keydown",e=>{
+        const step={ArrowLeft:-1,ArrowRight:1,ArrowUp:-16,ArrowDown:16}[e.key];
+        if(step!==undefined){e.preventDefault();buttons[Math.max(0,Math.min(size-1,i+step))].focus();}
+        if(e.key==="Escape"){pinned=null;el("tooltip").hidden=true;}
+      });
+      buttons.push(b);
+    }
+    el("grid").append(tr);
+  }
+  const known=buttons.filter((_,i)=>fieldsAt(i).some(f=>!["unknown","refuted"].includes(f.status))).length;
+  const seen=buttons.filter((_,i)=>observation(i)?.n).length;
+  el("coverage").textContent=`${profile.title}: ${known}/${size} bytes annotated (including reported/hypothetical fields). `+
+    (capture?`${seen} bytes with accepted capture data; ${date(capture.first)} to ${date(capture.last)}. ${capture.notes||""}`:"No measured byte values selected.");
+  filter();show(0);
+}
+function chooseProfile(){
+  el("capture").replaceChildren();
+  const none=text("option","No capture (layout only)",el("capture"));none.value="";
+  data.captures.forEach((c,i)=>{if(c.profile===data.profiles[Number(el("profile").value)].id&&
+    Object.keys(c.bytes).some(k=>k.startsWith(data.memory+":"))){
+    const option=text("option",c.name,el("capture"));option.value=i;
+  }});
+  if(el("capture").options.length>1)el("capture").selectedIndex=1;
+  rebuild();
+}
+function guarded(fn){return (...args)=>{try{el("error").hidden=true;fn(...args);}
+  catch(e){el("error").textContent=e.message;el("error").hidden=false;console.error(e);}};}
+data.profiles.forEach((p,i)=>{const option=text("option",p.title,el("profile"));option.value=i;});
+for(const [status,help] of Object.entries(data.statuses)){
+  const span=text("span",status,el("legend"),status);span.title=help;
+}
+el("profile").addEventListener("change",guarded(chooseProfile));
+el("capture").addEventListener("change",guarded(rebuild));
+el("search").addEventListener("input",filter);
+guarded(chooseProfile)();
+</script>
+</html>

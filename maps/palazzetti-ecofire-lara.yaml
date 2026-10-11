@@ -1,0 +1,426 @@
+# Palazzetti Ecofire Lara (air stove, Micronova-family controller).
+# Evidence:
+#   notes-2020  : manual observations while toggling settings (private repo notes/2020-palazzetti-repo)
+#   dump-2020   : 47 h RAM capture 2020-02-10..12, 13 838 full scans, 4 on/off cycles
+#                 (private repo dumps/2020-02-10-ram, analysed with `plz analyze`)
+# The Lara does NOT follow the generic Micronova RAM layout: entries with status `refuted`
+# document generic addresses that were checked and do not hold the generic meaning here.
+profile: palazzetti-ecofire-lara
+title: Palazzetti Ecofire Lara
+sources:
+  notes-2020: Manual observations (2020), private repo notes/2020-palazzetti-repo
+  dump-2020: RAM capture 2020-02-10..12, private repo dumps/2020-02-10-ram
+  dump-2020-02-08: Timestamped RAM polling in private reverse repo legacy/2020-backup/out2 (2020-02-08, 1.76 h); successful callbacks only, raw checksums unavailable
+fields:
+  # ---- state machine ---------------------------------------------------------------
+  - id: power_state
+    mem: ram
+    addr: 0xF9
+    name: Power state
+    status: observed
+    sources: [notes-2020, dump-2020]
+    values:
+      0x1A: "off"
+      0x2B: ignition
+      0x4B: working
+      0x1D: final cleaning
+    notes: >-
+      Ignition lasts ~20 min, final cleaning ~10 min. All four cycles of the dump follow
+      off → ignition → working → final cleaning → off.
+  - id: power_state_aux
+    mem: ram
+    addr: 0xFA
+    name: Power state (secondary)
+    status: observed
+    sources: [notes-2020, dump-2020]
+    values:
+      0x32: "off"
+      0x35: ignition or working
+      0x3B: final cleaning
+  - id: phase_step
+    mem: ram
+    addr: 0x6C
+    name: Phase step / sequencer position
+    status: hypothesis
+    sources: [notes-2020, dump-2020]
+    notes: 1 when off, 24–26 during ignition, 32–33 while working, 39/45/50 during final cleaning.
+  - id: status
+    mem: ram
+    addr: 0x21
+    name: Generic Micronova stove state
+    status: refuted
+    sources: [dump-2020]
+    notes: Constant 5 during the whole dump, including on/off cycles. Do not use the generic on/off writes here.
+  - id: phase_substep
+    mem: ram
+    addr: 0x4E
+    name: Phase sub-step
+    status: hypothesis
+    sources: [dump-2020]
+    notes: 0 off, 1–3 during ignition, 4 while working (6 briefly), 6 during final cleaning (η² 0.99 with 0xF9).
+  - id: ignition_counter
+    mem: ram
+    addr: 0x3C
+    name: Ignition counter
+    status: hypothesis
+    sources: [dump-2020]
+    notes: Non-zero only during ignition, steps through 1–20 (~1 per minute over the ~20 min ignition).
+  - id: onoff_0xd0
+    mem: ram
+    addr: 0xD0
+    name: Unknown D0, follows on/off
+    status: unknown
+    sources: [dump-2020]
+    notes: Mostly 8 when off, 88–90 during final cleaning, 56–90 while working. Pairs with 0xD2.
+  - id: onoff_0xd2
+    mem: ram
+    addr: 0xD2
+    name: Unknown D2, follows on/off
+    status: unknown
+    sources: [dump-2020]
+    notes: Mostly 4–12 when off, 84–94 during final cleaning, 48–94 while working. Pairs with 0xD0.
+
+  # ---- temperatures ---------------------------------------------------------------
+  - id: fumes_temperature
+    mem: ram
+    addr: 0x42
+    name: Fumes temperature
+    unit: °C
+    status: observed
+    sources: [notes-2020, dump-2020, dump-2020-02-08]
+    notes: >-
+      12–58 °C off, 68–133 °C working in the later capture. In the February 8 capture,
+      25–124 (23 distinct values). RAM 0x4B tracks this value; sequential polling
+      can differ while temperature changes, so it is not an atomic mirror.
+  - id: fumes_temperature_mirror
+    mem: ram
+    addr: 0x4B
+    name: Fumes temperature (copy)
+    unit: °C
+    status: observed
+    sources: [dump-2020]
+  - id: room_temperature
+    mem: ram
+    addr: 0x49
+    name: Room temperature
+    unit: °C
+    status: hypothesis
+    sources: [dump-2020, dump-2020-02-08]
+    notes: >-
+      19–27 °C, slow, rises while the stove works. February 8 capture: 21–27,
+      6 distinct values; this supports temperature-like evolution but does not identify the probe.
+  - id: board_temperature
+    mem: ram
+    addr: 0x4A
+    name: Temperature (board or ambient probe close to the stove)
+    unit: °C
+    status: hypothesis
+    sources: [notes-2020, dump-2020, dump-2020-02-08]
+    notes: >-
+      20–24 °C off, up to 36 °C while working. February 8 capture: 24–34,
+      7 distinct values; probe identity remains unverified.
+  - id: room_temperature_generic
+    mem: ram
+    addr: 0x01
+    name: Generic Micronova room temperature
+    status: refuted
+    sources: [dump-2020]
+    notes: Changes on almost every scan (0–84); looks like a fast counter or raw ADC value.
+  - id: fumes_temperature_generic
+    mem: ram
+    addr: 0x5A
+    name: Generic Micronova fumes temperature
+    status: refuted
+    sources: [dump-2020]
+    notes: >-
+      Not a temperature on the Lara: 63 (0b00111111) when off, 255 while running, a few 191/127.
+      Looks like a bit field (outputs or flags). The 2020 notes saw "high values, 0 after off".
+  - id: running_flags
+    mem: ram
+    addr: 0x5A
+    name: Running flags (bit field?)
+    status: hypothesis
+    sources: [notes-2020, dump-2020]
+
+  # ---- combustion -----------------------------------------------------------------
+  - id: fumes_fan_speed
+    mem: ram
+    addr: 0x37
+    name: Fumes extractor speed
+    unit: rpm
+    scale: 10
+    status: observed
+    sources: [notes-2020, dump-2020]
+    notes: 0 when off, 135–249 while running (same address as generic Micronova). RAM 0x39 tracks it.
+  - id: fumes_fan_speed_mirror
+    mem: ram
+    addr: 0x39
+    name: Fumes extractor speed (set point or copy)
+    status: observed
+    sources: [dump-2020]
+  - id: power_actual
+    mem: ram
+    addr: 0x3F
+    name: Actual power level
+    status: observed
+    sources: [notes-2020, dump-2020]
+    notes: 0 off, 2 during ignition, 1–4 while working.
+  - id: power_actual_aux
+    mem: ram
+    addr: 0x44
+    name: Power related level
+    status: hypothesis
+    sources: [dump-2020]
+    notes: 0 off, 0–2 ignition, 2–4 working.
+  - id: work_countdown
+    mem: ram
+    addr: 0x38
+    name: Working countdown (seconds?)
+    status: hypothesis
+    sources: [notes-2020, dump-2020]
+    notes: Cycles 60→0 while working, 0 otherwise.
+  - id: ignition_level
+    mem: ram
+    addr: 0x02
+    name: Unknown, ignition related
+    status: hypothesis
+    sources: [notes-2020, dump-2020]
+    notes: 255 off, 12–68 during ignition, 68 while working.
+  - id: power_actual_generic
+    mem: ram
+    addr: 0x34
+    name: Generic Micronova power
+    status: refuted
+    sources: [dump-2020]
+    notes: Oscillates 2–11 in every state, 10 when off.
+
+  # ---- user settings (RAM copies) -------------------------------------------------
+  - id: power_setting_ram
+    mem: ram
+    addr: 0x65
+    name: Power setting P (RAM copy)
+    status: observed
+    sources: [notes-2020, dump-2020]
+    notes: Follows P on the panel (0 = auto). RAM 0x47 also follows P. Constant 0 in the dump.
+  - id: fan_setting_ram
+    mem: ram
+    addr: 0x66
+    name: Ambient fan setting V (RAM copy)
+    status: observed
+    sources: [notes-2020, dump-2020]
+    values: {0: auto, 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+    notes: RAM 0x46 also follows V. Constant 0 in the dump.
+  - id: target_temperature_ram
+    mem: ram
+    addr: 0x67
+    name: Target temperature (RAM copy)
+    unit: °C
+    status: hypothesis
+    sources: [notes-2020, dump-2020]
+    notes: Constant 26 in the dump, matching EEPROM 78 at that time.
+
+  - id: shutdown_countdown
+    mem: ram
+    addr: 0x09
+    name: Countdown after switch off
+    status: observed
+    sources: [notes-2020, dump-2020]
+    notes: 0 while running, counts 10→0 during final cleaning, 255 when off.
+  - id: onoff_0x3b
+    mem: ram
+    addr: 0x3B
+    name: Unknown, follows on/off
+    status: observed
+    sources: [notes-2020, dump-2020]
+    notes: 255 off, 0 running, short 0 1 2 4 … sequence after switch off. Generic Micronova water temperature address.
+  - id: onoff_0x3e
+    mem: ram
+    addr: 0x3E
+    name: Unknown flag, follows on/off
+    status: observed
+    sources: [notes-2020, dump-2020]
+    values: {0: running, 128: stopped}
+    notes: Goes 0 → 128 about 10 min after switch off.
+  - id: onoff_0xf0
+    mem: ram
+    addr: 0xF0
+    name: Unknown, follows on/off
+    status: observed
+    sources: [notes-2020, dump-2020]
+    notes: 0 off, 103 running.
+  - id: onoff_0xf1
+    mem: ram
+    addr: 0xF1
+    name: Unknown analog value, follows on/off
+    status: observed
+    sources: [notes-2020, dump-2020]
+    notes: 83 running, 215–230 off (slow drift).
+  - id: onoff_0xf5
+    mem: ram
+    addr: 0xF5
+    name: Unknown, follows on/off
+    status: observed
+    sources: [notes-2020, dump-2020]
+    notes: 2 off, 63 running.
+  - id: onoff_0xfb
+    mem: ram
+    addr: 0xFB
+    name: Unknown, follows on/off
+    status: observed
+    sources: [notes-2020, dump-2020]
+
+  # ---- clock ----------------------------------------------------------------------
+  - id: clock_minute
+    mem: ram
+    addr: 0x5E
+    name: Clock, minutes
+    encoding: bcd
+    status: observed
+    sources: [notes-2020, dump-2020]
+  - id: clock_hour
+    mem: ram
+    addr: 0x5F
+    name: Clock, hours
+    encoding: bcd
+    status: observed
+    sources: [notes-2020, dump-2020]
+  - id: clock_weekday
+    mem: ram
+    addr: 0x60
+    name: Clock, day of week
+    status: observed
+    sources: [notes-2020, dump-2020]
+    values: {0: sunday, 1: monday, 2: tuesday, 3: wednesday, 4: thursday, 5: friday, 6: saturday}
+    notes: Read 1 on Monday 2020-02-10 and 2 on Tuesday, as expected.
+  - id: clock_hour_tens
+    mem: ram
+    addr: 0x6B
+    name: Hours and tens of minutes
+    status: observed
+    sources: [notes-2020]
+    notes: BCD-like, increments every 10 minutes.
+
+  # ---- counters and constants -----------------------------------------------------
+  - id: counter_hour
+    mem: ram
+    addr: 0x30
+    name: 0–59 counter (one cycle per hour), frozen when off
+    status: observed
+    sources: [notes-2020]
+  - id: counter_2h
+    mem: ram
+    addr: 0x32
+    name: 120→0 counter, restarts every two hours
+    status: observed
+    sources: [notes-2020, dump-2020]
+  - id: auger_time
+    mem: ram
+    addr: 0x0D
+    name: Generic Micronova auger time
+    status: unknown
+    sources: [dump-2020]
+    notes: Constant 232 for 47 h, so not a live auger time here. Likely the board/model code read by the Connection Box (see palazzetti-connbox).
+  - id: constants_0x23
+    mem: ram
+    addr: 0x23
+    count: 13
+    name: Constant block 43 20 10 60 20 80 159 145 145 145 145 11 5
+    status: observed
+    sources: [notes-2020]
+
+  # ---- EEPROM (addresses are decimal in the 2020 notes) ---------------------------
+  - id: chrono_programs
+    mem: eeprom
+    addr: 59
+    count: 18
+    name: Chrono programs 1–6, 3 bytes each (start, stop, days)
+    access: rw
+    status: hypothesis
+    sources: [notes-2020]
+    notes: Triplet layout and start/stop byte encoding not decoded yet; EEPROM 62 went 0x43→0x42 and 63 went 0x54→0x57 while editing a program.
+    members:
+      - id: program_1
+        name: Program 1
+        byte_offset: 0
+        count: 3
+        members:
+          - {id: start, name: Start time (encoding unknown), byte_offset: 0}
+          - {id: stop, name: Stop time (encoding unknown), byte_offset: 1}
+          - id: days
+            name: Day selection
+            byte_offset: 2
+            status: observed
+            values: {0: week, 1: mon-fri, 2: sat-sun, 3: monday, 4: tuesday, 5: wednesday, 6: thursday, 7: friday, 8: saturday, 9: sunday}
+      - id: program_2
+        name: Program 2 (hypothesized triplet)
+        byte_offset: 3
+        count: 3
+        members:
+          - {id: start, name: Start time (encoding unknown), byte_offset: 0}
+          - {id: stop, name: Stop time (encoding unknown), byte_offset: 1}
+          - {id: days, name: Day selection (unverified), byte_offset: 2}
+      - id: program_3
+        name: Program 3 (hypothesized triplet)
+        byte_offset: 6
+        count: 3
+        members:
+          - {id: start, name: Start time (encoding unknown), byte_offset: 0}
+          - {id: stop, name: Stop time (encoding unknown), byte_offset: 1}
+          - {id: days, name: Day selection (unverified), byte_offset: 2}
+      - id: program_4
+        name: Program 4 (hypothesized triplet)
+        byte_offset: 9
+        count: 3
+        members:
+          - {id: start, name: Start time (encoding unknown), byte_offset: 0}
+          - {id: stop, name: Stop time (encoding unknown), byte_offset: 1}
+          - {id: days, name: Day selection (unverified), byte_offset: 2}
+      - id: program_5
+        name: Program 5 (hypothesized triplet)
+        byte_offset: 12
+        count: 3
+        members:
+          - {id: start, name: Start time (encoding unknown), byte_offset: 0}
+          - {id: stop, name: Stop time (encoding unknown), byte_offset: 1}
+          - {id: days, name: Day selection (unverified), byte_offset: 2}
+      - id: program_6
+        name: Program 6 (hypothesized triplet)
+        byte_offset: 15
+        count: 3
+        members:
+          - {id: start, name: Start time (encoding unknown), byte_offset: 0}
+          - {id: stop, name: Stop time (encoding unknown), byte_offset: 1}
+          - {id: days, name: Day selection (unverified), byte_offset: 2}
+  - id: chrono_days
+    mem: eeprom
+    addr: 61
+    name: Program 1 day selection
+    access: rw
+    status: observed
+    sources: [notes-2020]
+    values: {0: week, 1: mon-fri, 2: sat-sun, 3: monday, 4: tuesday, 5: wednesday, 6: thursday, 7: friday, 8: saturday, 9: sunday}
+  - id: power_setting
+    mem: eeprom
+    addr: 76
+    name: Power setting P
+    access: rw
+    status: observed
+    sources: [notes-2020]
+    values: {0: auto, 1: "1", 2: "2", 3: "3", 4: "4"}
+  - id: fan_setting
+    mem: eeprom
+    addr: 77
+    name: Ambient fan setting V
+    access: rw
+    status: observed
+    sources: [notes-2020]
+    values: {0: auto, 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+  - id: target_temperature
+    mem: eeprom
+    addr: 78
+    name: Target temperature
+    unit: °C
+    access: rw
+    status: observed
+    sources: [notes-2020]
+    notes: Plain degrees, not BCD (26 → 27 when raised by one).

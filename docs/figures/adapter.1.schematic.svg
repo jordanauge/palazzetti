@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .title { font-size: 22px; font-weight: bold; fill: #2C3E50; }
+      .head { font-size: 15px; font-weight: bold; fill: #2C3E50; }
+      .label { font-size: 13px; fill: #2C3E50; }
+      .small { font-size: 11px; fill: #566573; }
+      .todo { font-size: 12px; fill: #C0392B; font-style: italic; }
+      .w { stroke: #2C3E50; stroke-width: 2; fill: none; }
+      .bus { stroke: #E67E22; stroke-width: 3; fill: none; }
+      .lv { stroke: #2ECC71; stroke-width: 3; fill: none; }
+      .tx { stroke: #3498DB; stroke-width: 3; fill: none; }
+      .rx { stroke: #9B59B6; stroke-width: 3; fill: none; }
+      .part { fill: #FFFFFF; stroke: #2C3E50; stroke-width: 2; }
+      .dot { fill: #2C3E50; }
+      .hv { fill: #FDEBD0; stroke: #E67E22; stroke-width: 1.5; stroke-dasharray: 6 4; }
+      .lvz { fill: #D6EAF8; stroke: #3498DB; stroke-width: 1.5; stroke-dasharray: 6 4; }
+    </style>
+  </defs>
+  <text x="500" y="34" text-anchor="middle" class="title">1-wire ↔ TX/RX adapter (reference design)</text>
+
+  <rect x="30" y="60" width="400" height="400" rx="12" class="hv"/>
+  <text x="50" y="85" class="head">Stove side, 5 V</text>
+  <rect x="470" y="60" width="500" height="400" rx="12" class="lvz"/>
+  <text x="950" y="85" text-anchor="end" class="head">ESP side, 3.3 V</text>
+
+  <!-- rails -->
+  <text x="50" y="125" class="label">+5 V</text>
+  <path d="M95 120 H300" class="w"/>
+  <text x="910" y="125" text-anchor="end" class="label">+3.3 V</text>
+  <path d="M560 120 H860" class="w"/>
+
+  <!-- HV pull-up -->
+  <rect x="285" y="140" width="30" height="60" class="part"/>
+  <path d="M300 120 V140 M300 200 V260" class="w"/>
+  <text x="325" y="175" class="label">R1 10 kΩ</text>
+
+  <!-- LV pull-up -->
+  <rect x="585" y="140" width="30" height="60" class="part"/>
+  <path d="M600 120 V140 M600 200 V260" class="w"/>
+  <text x="625" y="175" class="label">R2 10 kΩ</text>
+
+  <!-- MOSFET -->
+  <rect x="400" y="230" width="140" height="70" rx="6" class="part"/>
+  <text x="470" y="258" text-anchor="middle" class="head">Q1 BSS138</text>
+  <text x="470" y="278" text-anchor="middle" class="small">G → +3.3 V, S → LV, D → HV</text>
+  <path d="M470 230 V210 H560 V120" class="w"/>
+
+  <!-- bus HV line -->
+  <text x="50" y="265" class="label">BUS</text>
+  <path d="M95 260 H400" class="bus"/>
+  <circle cx="300" cy="260" r="4" class="dot"/>
+
+  <!-- LV line -->
+  <path d="M540 260 H760" class="lv"/>
+  <circle cx="600" cy="260" r="4" class="dot"/>
+  <circle cx="700" cy="260" r="4" class="dot"/>
+
+  <!-- RX direct -->
+  <path d="M700 260 V330 H860" class="rx"/>
+  <text x="870" y="335" class="label">RX D7</text>
+  <text x="870" y="350" class="small">GPIO13</text>
+
+  <!-- TX via schottky -->
+  <path d="M760 260 V380" class="w"/>
+  <polygon points="748,380 772,380 760,400" class="part"/>
+  <line x1="746" y1="402" x2="774" y2="402" class="w"/>
+  <text x="782" y="395" class="label">D1 BAT85 (Schottky)</text>
+  <path d="M760 402 V420 H860" class="tx"/>
+  <text x="870" y="425" class="label">TX D8</text>
+  <text x="870" y="440" class="small">GPIO15</text>
+
+  <!-- GND -->
+  <text x="50" y="445" class="label">GND</text>
+  <path d="M95 440 H700" class="w"/>
+  <text x="500" y="435" class="small">common ground stove ↔ ESP</text>
+
+  <text x="40" y="490" class="label">TX high: D1 blocked, both lines pulled high. TX low: D1 pulls LV low, Q1 pulls the bus low.</text>
+  <text x="40" y="510" class="label">Non-inverting; every byte we send comes back on RX (echo), which the component discards (echo: auto).</text>
+  <text x="40" y="540" class="todo">Generic Micronova design: compare with the real adapter and update values/topology (TO VERIFY).</text>
+</svg>

@@ -14,6 +14,12 @@ The stove's Micronova bus is a **single wire** that carries both directions at 5
 > the 2020 code expects (no UART inversion, own frames echoed on RX), but it has **not yet been checked against
 > the physical adapter**. Fill in §4 from the real board and fix the figure if anything differs.
 
+The owner's retained drawing instead shows **a diode, a 10 kΩ resistor and an
+NPN transistor**. It is not Figure 1's BSS138 circuit. The as-built HAT contact
+positions, transistor part/pin order, receive biasing and power connections have
+not been established. Do not substitute this reference circuit for the actual
+board when deciding how to insert the ESP.
+
 ## 1. Reference circuit
 
 ![Adapter schematic](figures/adapter.1.schematic.svg)

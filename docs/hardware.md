@@ -57,6 +57,22 @@ ESP **D8 sends** into its transmit input, and **D7 receives** from its receive o
 The USB UART pins marked TX/RX are **not** the stove pins.
 The adapter must provide non-inverted 3.3 V-compatible UART signals; its as-built circuit still needs verification.
 
+### HAT insertion direction is not established
+
+GPIO assignments describe **signals**, not the physical orientation of a custom
+socket. Do not infer direction from the green wire, USB end, diode position or
+another adapter's diagram. The owner's saved diode/resistor/NPN drawing differs
+from the reference MOSFET circuit in [adapter.md](adapter.md).
+
+With **USB, stove cable and every other supply disconnected**, establish which
+HAT socket contacts connect to its signal ground, supply, transmit input and
+receive output. Match those contacts to the exact devkit's printed **GND, 3V3,
+D8 and D7** labels. Check the entire socket, not just the UART pair: inserting a
+board backwards can connect supply voltage to GPIOs.
+Unpowered continuity checks identify wiring, not the suitability of a voltage
+or isolation arrangement. If a socket contact is tied to the stove's supply,
+do not insert or USB-power the ESP until that supply path is verified.
+
 A D1 mini can use the same D8/D7 GPIO mapping with `board: d1_mini`.
 GPIO1/3 are another hardware UART0 mapping, but share USB serial and are not used here.
 ESP32 ports require adapting the board/UART configuration; they have not been validated by this build.

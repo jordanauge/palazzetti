@@ -17,23 +17,28 @@ Every address is one byte. RAM and EEPROM are separate address spaces (see [prot
 
 Where each profile places a parameter (`—` absent, ~~struck~~ refuted).
 
-| Parameter | micronova-common | micronova-forum | micronova-p937 | palazzetti-connbox | palazzetti-ecofire-lara |
-|---|---|---|---|---|---|
-| room_temperature | ram 0x01 | ram 0x01 | ram 0x01 | — | ram 0x49 |
-| water_temperature | ram 0x03 | ram 0x03 | ram 0x03 | — | — |
-| auger_time | ram 0x0D | ram 0x0D | ram 0x0D | — | ram 0x0D |
-| status | ram 0x21 | ram 0x21 | ram 0x21 | ram 0x21 | ~~ram 0x21~~ |
-| power_actual | ram 0x34 | ram 0x34 | ram 0x34 | — | ram 0x3F |
-| fumes_fan_speed | ram 0x37 | ram 0x37 | ram 0x37 | — | ram 0x37 |
-| water_temperature_alt | ram 0x3B | ram 0x3B | ram 0x3B | — | — |
-| water_pressure | ram 0x3C | ram 0x3C | ram 0x3C | — | — |
-| fumes_temperature | ram 0x5A | ram 0x5A | ram 0x5A | — | ram 0x42 |
-| target_temperature | eeprom 0x7D | eeprom 0x7D | eeprom 0x7D | ram 0x36 | eeprom 0x4E |
-| power_setting | eeprom 0x7F | eeprom 0x7F | eeprom 0x7F | — | eeprom 0x4C |
-| clock_weekday | — | ram 0x64 | — | — | ram 0x60 |
-| clock_hour | — | ram 0x65 | — | — | ram 0x5F |
-| clock_minute | — | ram 0x66 | — | — | ram 0x5E |
-| board_model | — | — | — | ram 0x0D | ram 0x0D |
+| Parameter | micronova-common | micronova-forum | micronova-marina | micronova-p937 | micronova-ridiculouslab | palazzetti-connbox | palazzetti-ecofire-lara |
+|---|---|---|---|---|---|---|---|
+| room_temperature | ram 0x01 | ram 0x01 | ram 0x01 | ram 0x01 | ram 0x01 | — | ram 0x49 |
+| water_temperature | ram 0x03 | ram 0x03 | — | ram 0x03 | ram 0x03 | — | — |
+| auger_time | ram 0x0D | ram 0x0D | ram 0x0D | ram 0x0D | ram 0x0D | — | ram 0x0D |
+| status | ram 0x21 | ram 0x21 | ram 0x21 | ram 0x21 | ram 0x21 | ram 0x21 | ~~ram 0x21~~ |
+| power_actual | ram 0x34 | ram 0x34 | — | ram 0x34 | ram 0x34 | — | ram 0x3F |
+| fumes_fan_speed | ram 0x37 | ram 0x37 | ram 0x37 | ram 0x37 | ram 0x37 | — | ram 0x37 |
+| water_temperature_alt | ram 0x3B | ram 0x3B | — | ram 0x3B | ram 0x3B | — | — |
+| water_pressure | ram 0x3C | ram 0x3C | — | ram 0x3C | — | — | — |
+| fumes_temperature | ram 0x5A | ram 0x5A | ram 0x3E | ram 0x5A | ram 0x5A | — | ram 0x42 |
+| target_temperature | eeprom 0x7D | eeprom 0x7D | eeprom 0x7D | eeprom 0x7D | — | ram 0x36 | eeprom 0x4E |
+| power_setting | eeprom 0x7F | eeprom 0x7F | eeprom 0x7F | eeprom 0x7F | — | — | eeprom 0x4C |
+| clock_weekday | — | ram 0x64 | ram 0x7B | — | — | — | ram 0x60 |
+| clock_hour | — | ram 0x65 | ram 0x7C | — | — | — | ram 0x5F |
+| clock_minute | — | ram 0x66 | ram 0x7D | — | — | — | ram 0x5E |
+| clock_day | — | ram 0x67 | ram 0x7E | — | — | — | — |
+| clock_month | — | ram 0x68 | ram 0x7F | — | — | — | — |
+| clock_year | — | ram 0x69 | ram 0x80 | — | — | — | — |
+| infrared_command | — | — | ram 0x58 | — | ram 0x58 | — | — |
+| power_setting_ram | — | — | ram 0x19 | — | — | — | ram 0x65 |
+| board_model | — | — | — | — | — | ram 0x0D | ram 0x0D |
 
 ## Micronova (generic, community consensus)
 
@@ -60,8 +65,19 @@ Profile `micronova-common`.
 | 0x7D | 125 | Thermostat set point | °C |  |  | rw | reported | unverified | esphome-micronova |  |
 | 0x7F | 127 | Power level setting |  |  |  | rw | reported | unverified | esphome-micronova |  |
 
+### Claim-specific evidence
+
+Source credit distinguishes address, representation and interpretation. A third-party address is not evidence of Lara applicability. Legacy sources without structured claims remain unclassified.
+
+- `room_temperature`: **external / source_code**; supports address, meaning, encoding; `esphome-code` — ESPHome default room sensor reads RAM 01 and divides by two; not a Lara probe identification.
+- `power_actual`: **external / source_code**; supports address, meaning, encoding; `esphome-code` — ESPHome default power sensor reads RAM 34 with no divisor. Refuted as actual power in the Lara profile.
+- `fumes_fan_speed`: **external / source_description**; supports address, meaning, encoding; `esphome-micronova` — ESPHome default extractor address with raw times ten plus configurable model offset. Address and offset remain model-dependent.
+- `water_temperature_alt`: **external / source_code**; supports address, meaning, encoding; `esphome-code` — Current ESPHome water sensor default is RAM 3B divided by two. Other sources report unit scale; applicability is board-specific.
+- `water_pressure`: **external / source_code**; supports address, meaning, encoding; `esphome-code` — Current ESPHome default reads RAM 3C divided by ten. A hydro-specific parameter is not automatically present on an air stove.
+- `fumes_temperature`: **external / source_code**; supports address, meaning, encoding; `esphome-code` — Current ESPHome default reads RAM 5A without a divisor. This temperature interpretation is refuted for Lara.
 Sources:
 
+- `esphome-code`: Current ESPHome sensor defaults and conversions: https://github.com/esphome/esphome/blob/dev/esphome/components/micronova/sensor/__init__.py (reviewed 2026-10-11); not Lara applicability
 - `esphome-micronova`: ESPHome Micronova component defaults: https://esphome.io/components/micronova/
 - `stufapellet`: StufaPellet community protocol/project: https://stufapellet.forumcommunity.net/?t=53061907 (original archive retained privately)
 - `forum`: Community table of a Micronova board (see micronova-forum.yaml)
@@ -101,11 +117,86 @@ Profile `micronova-forum`, extends `micronova-common`.
 | 0x7D | 125 | Thermostat set point | °C |  |  | rw | reported | unverified | forum |  |
 | 0x7F | 127 | Power level setting |  |  |  | rw | reported | unverified | forum |  |
 
+### Claim-specific evidence
+
+Source credit distinguishes address, representation and interpretation. A third-party address is not evidence of Lara applicability. Legacy sources without structured claims remain unclassified.
+
+- `power_actual`: **external / source_code**; supports address, meaning, encoding; `esphome-code` — ESPHome default power sensor reads RAM 34 with no divisor. Refuted as actual power in the Lara profile.
+- `water_temperature_alt`: **external / source_code**; supports address, meaning, encoding; `esphome-code` — Current ESPHome water sensor default is RAM 3B divided by two. Other sources report unit scale; applicability is board-specific.
+- `water_pressure`: **external / source_code**; supports address, meaning, encoding; `esphome-code` — Current ESPHome default reads RAM 3C divided by ten. A hydro-specific parameter is not automatically present on an air stove.
+- `technical_parameters`: **external / source_table**; supports address, meaning, encoding, layout; `forum` — Historical third-party PG/PF table supplies per-member offsets and affine conversion formulas; no Lara applicability or safe bounds verified.
+- `user_parameters`: **external / source_table**; supports address, meaning, encoding, layout; `forum` — Historical table reports three adjustment bytes at decimal 54–56 with value=5*raw-45. Not Lara offsets.
+- `chrono`: **external / source_table**; supports address, meaning, encoding, layout; `forum` — Historical table supplies four start/stop pairs in ten-minute units and seven day flags per program, with gaps. Not the Lara tentative triplets.
 Sources:
 
+- `esphome-code`: Current ESPHome sensor defaults and conversions: https://github.com/esphome/esphome/blob/dev/esphome/components/micronova/sensor/__init__.py (reviewed 2026-10-11); not Lara applicability
 - `esphome-micronova`: ESPHome Micronova component defaults: https://esphome.io/components/micronova/
 - `stufapellet`: StufaPellet community protocol/project: https://stufapellet.forumcommunity.net/?t=53061907 (original archive retained privately)
 - `forum`: Community Micronova table: https://stufapellet.forumcommunity.net/?t=53061907 (2020 notes retained privately; applicability unverified)
+
+## Micronova (L'Asolana Marina, eni23 reference)
+
+Profile `micronova-marina`.
+
+### RAM
+
+| Address | Dec | Name | Unit | Scale | Values | Access | Status | Write certainty | Sources | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0x01 | 1 | Ambient temperature | °C | ×0.5 |  | r | reported | unverified | eni23 |  |
+| 0x02 | 2 | Temperature (outlet candidate) |  |  |  | r | reported | unverified | eni23 | Probe identity is tentative even in source. |
+| 0x0A | 10 | Hot-air fan output |  |  |  | r | reported | unverified | eni23 | Source describes approximately 0–50, not a safe bound. |
+| 0x0D | 13 | Pellet loading formula |  |  |  | r | reported | unverified | eni23 |  |
+| 0x19 | 25 | Power setting (read-only reported) |  |  |  | r | reported | unverified | eni23 |  |
+| 0x21 | 33 | Stove state |  |  |  | r | reported | unverified | eni23 | Source reports a slow shutdown via the state register and a different IR path. Neither path is a safe Lara command. |
+| 0x37 | 55 | Fumes extractor speed |  |  |  | r | reported | unverified | eni23 | README mapping does not establish a numeric conversion here. |
+| 0x3E | 62 | Fumes temperature |  |  |  | r | reported | unverified | eni23 |  |
+| 0x58 | 88 | Infrared command byte |  |  |  | r | reported | unverified | eni23 | Source lists P+=54, P-=50, T+=52, T-=58 and power=5A (hex). Ridiculouslab reverses the P+/P- labels. Read-only annotation; no Lara command authorized. |
+| 0x7B | 123 | Clock seconds (conflicting source row) |  |  |  | r | reported | unverified | eni23 | Source also assigns weekday to 7B; preserve conflict instead of correcting the offset. |
+| 0x7B | 123 | Clock weekday (conflicting source row) |  |  |  | r | reported | unverified | eni23 |  |
+| 0x7C | 124 | Clock hours (decimal) |  |  |  | r | reported | unverified | eni23 |  |
+| 0x7D | 125 | Clock minutes (decimal) |  |  |  | r | reported | unverified | eni23 |  |
+| 0x7E | 126 | Clock day (decimal) |  |  |  | r | reported | unverified | eni23 |  |
+| 0x7F | 127 | Clock month (decimal) |  |  |  | r | reported | unverified | eni23 |  |
+| 0x80 | 128 | Clock year since 2000 (decimal) |  |  |  | r | reported | unverified | eni23 |  |
+
+### EEPROM
+
+| Address | Dec | Name | Unit | Scale | Values | Access | Status | Write certainty | Sources | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0x25 | 37 | Night mode |  |  | 0=off, 1=on | r | reported | unverified | eni23 |  |
+| 0x50–0x59 | 80 | Daily timer (two programs) |  |  |  | r | reported | unverified | eni23 |  |
+| 0x7D | 125 | Target temperature |  |  |  | r | reported | unverified | eni23 |  |
+| 0x7F | 127 | Power setting |  |  |  | r | reported | unverified | eni23 |  |
+| 0xF8–0xFD | 248 | Stored clock (BCD time/date examples) |  |  |  | r | reported | unverified | eni23 |  |
+
+### Claim-specific evidence
+
+Source credit distinguishes address, representation and interpretation. A third-party address is not evidence of Lara applicability. Legacy sources without structured claims remain unclassified.
+
+- `status`: **external / source_table**; supports address, meaning; `eni23` — Other-board state mapping; different stopping behavior even among Micronova boards.
+- `infrared_command`: **external / source_table**; supports address, encoding; `eni23` — Other-board IR representation; source conflicts must be resolved before assigning command meanings.
+- `room_temperature`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `power_setting_ram`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `fan_output`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `fumes_temperature`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `outlet_temperature_candidate`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `fumes_fan_speed`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `auger_time`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `clock_second`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `clock_weekday`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `clock_hour`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `clock_minute`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `clock_day`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `clock_month`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `clock_year`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `target_temperature`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `power_setting`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `night_mode`: **external / source_table**; supports address, meaning, encoding; `eni23` — Reported L'Asolana Marina entry; location and conversion are not Lara evidence.
+- `stored_clock`: **external / source_table**; supports address, encoding, layout; `eni23` — EEPROM time/date examples imply BCD, unlike the source's decimal RAM clock. Weekday enum is 1–7; no Lara offset or encoding inferred.
+- `daily_timer`: **external / source_table**; supports address, meaning, encoding, layout; `eni23` — Source lists enable, two ten-minute start/stop pairs, power and target temperature. Slot 55 is unassigned; keep gaps.
+Sources:
+
+- `eni23`: L'Asolana Marina README mapping: https://github.com/eni23/micronova-controller (reviewed 2026-10-11); offsets explicitly model-dependent
 
 ## Micronova P937 board
 
@@ -135,12 +226,63 @@ Profile `micronova-p937`, extends `micronova-common`.
 | 0x81 | 129 | Left ambient fan setting |  |  |  | rw | reported | unverified | p937 |  |
 | 0x82 | 130 | Right ambient fan setting |  |  |  | rw | reported | unverified | p937 |  |
 
+### Claim-specific evidence
+
+Source credit distinguishes address, representation and interpretation. A third-party address is not evidence of Lara applicability. Legacy sources without structured claims remain unclassified.
+
+- `power_actual`: **external / source_code**; supports address, meaning, encoding; `esphome-code` — ESPHome default power sensor reads RAM 34 with no divisor. Refuted as actual power in the Lara profile.
+- `fumes_fan_speed`: **external / source_description**; supports address, meaning, encoding; `esphome-micronova` — ESPHome default extractor address with raw times ten plus configurable model offset. Address and offset remain model-dependent.
+- `water_temperature_alt`: **external / source_code**; supports address, meaning, encoding; `esphome-code` — Current ESPHome water sensor default is RAM 3B divided by two. Other sources report unit scale; applicability is board-specific.
+- `water_pressure`: **external / source_code**; supports address, meaning, encoding; `esphome-code` — Current ESPHome default reads RAM 3C divided by ten. A hydro-specific parameter is not automatically present on an air stove.
+- `fumes_temperature`: **external / source_code**; supports address, meaning, encoding; `esphome-code` — Current ESPHome default reads RAM 5A without a divisor. This temperature interpretation is refuted for Lara.
 Sources:
 
+- `esphome-code`: Current ESPHome sensor defaults and conversions: https://github.com/esphome/esphome/blob/dev/esphome/components/micronova/sensor/__init__.py (reviewed 2026-10-11); not Lara applicability
 - `esphome-micronova`: ESPHome Micronova component defaults: https://esphome.io/components/micronova/
 - `stufapellet`: StufaPellet community protocol/project: https://stufapellet.forumcommunity.net/?t=53061907 (original archive retained privately)
 - `forum`: Community table of a Micronova board (see micronova-forum.yaml)
 - `p937`: Community JavaScript Micronova controller, P937 profile (collected in 2020 notes)
+
+## Micronova (ridiculouslab reference board, not Lara)
+
+Profile `micronova-ridiculouslab`.
+
+### RAM
+
+| Address | Dec | Name | Unit | Scale | Values | Access | Status | Write certainty | Sources | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0x00 |  | Internal CPU counter |  |  |  | r | reported | unverified | ridiculouslab |  |
+| 0x01 | 1 | Ambient temperature | °C | ×0.5 |  | r | reported | unverified | ridiculouslab |  |
+| 0x03 | 3 | Water temperature | °C |  |  | r | reported | unverified | ridiculouslab | Source reports unit scale; differs from ESPHome raw/2. Keep both profiles, do not average conversions. |
+| 0x0D | 13 | Pellet load activation time | s | ×10 |  | r | reported | unverified | ridiculouslab | Source's times-ten scale differs from the forum table. Not a Lara feeder identification. |
+| 0x21 | 33 | Stove state |  |  |  | r | reported | unverified | ridiculouslab | On/off writes are marked untested by the source; no write permission. |
+| 0x34 | 52 | Actual power |  |  |  | r | reported | unverified | ridiculouslab |  |
+| 0x37 | 55 | Fumes extractor speed | rpm | ×10 |  | r | reported | unverified | ridiculouslab | Source specifies a model-dependent offset in addition to times ten; no offset established for Lara. |
+| 0x3B | 59 | Water temperature copy | °C |  |  | r | reported | unverified | ridiculouslab |  |
+| 0x58 | 88 | Infrared command byte (reported) |  |  |  | r | reported | unverified | ridiculouslab | Source lists P+=50 and P-=54 (hex), opposite eni23's labels. No safe Lara command established. The EEPROM write header is also printed as 0x0A in prose; do not treat a source typo as protocol evidence. |
+| 0x5A | 90 | Fumes temperature | °C |  |  | r | reported | unverified | ridiculouslab |  |
+| 0x65–0x6B | 101 | Clock fields (reported order) |  |  |  | r | reported | unverified | ridiculouslab |  |
+| 0x8D–0x9C | 141 | Display message (reported ASCII) |  |  |  | r | reported | unverified | ridiculouslab | Reported ASCII bytes; no assumed Lara display address. Decode only actual captured bytes. |
+
+### Claim-specific evidence
+
+Source credit distinguishes address, representation and interpretation. A third-party address is not evidence of Lara applicability. Legacy sources without structured claims remain unclassified.
+
+- `infrared_command`: **external / source_table**; supports address, encoding; `ridiculouslab` — Reported IR command representation on another board; conflicting P+/P- labels preserved rather than resolved by assumption.
+- `cpu_counter`: **external / source_table**; supports address, meaning, encoding; `ridiculouslab` — Reported RAM-table entry for the author's reference board. Neither its address nor representation is validated on Lara.
+- `room_temperature`: **external / source_table**; supports address, meaning, encoding; `ridiculouslab` — Reported RAM-table entry for the author's reference board. Neither its address nor representation is validated on Lara.
+- `water_temperature`: **external / source_table**; supports address, meaning, encoding; `ridiculouslab` — Reported RAM-table entry for the author's reference board. Neither its address nor representation is validated on Lara.
+- `auger_time`: **external / source_table**; supports address, meaning, encoding; `ridiculouslab` — Reported RAM-table entry for the author's reference board. Neither its address nor representation is validated on Lara.
+- `status`: **external / source_table**; supports address, meaning, encoding; `ridiculouslab` — Reported RAM-table entry for the author's reference board. Neither its address nor representation is validated on Lara.
+- `power_actual`: **external / source_table**; supports address, meaning, encoding; `ridiculouslab` — Reported RAM-table entry for the author's reference board. Neither its address nor representation is validated on Lara.
+- `fumes_fan_speed`: **external / source_table**; supports address, meaning, encoding; `ridiculouslab` — Reported RAM-table entry for the author's reference board. Neither its address nor representation is validated on Lara.
+- `water_temperature_alt`: **external / source_table**; supports address, meaning, encoding; `ridiculouslab` — Reported RAM-table entry for the author's reference board. Neither its address nor representation is validated on Lara.
+- `fumes_temperature`: **external / source_table**; supports address, meaning, encoding; `ridiculouslab` — Reported RAM-table entry for the author's reference board. Neither its address nor representation is validated on Lara.
+- `clock`: **external / source_table**; supports address, meaning, layout; `ridiculouslab` — Source lists seconds/weekday/hours/minutes/day/month/year over 65–6B. Byte encoding and exact board identity require verification; not Lara's BCD layout.
+- `display_message`: **external / source_table**; supports address, meaning, encoding, layout; `ridiculouslab` — Source identifies ASCII LCD text at RAM 8D–9C. Its Modbus addresses are separately translated by 100 and are not serial EEPROM addresses.
+Sources:
+
+- `ridiculouslab`: Micronova protocol analysis: https://www.ridiculouslab.com/arguments/iot/stufa/micronova_en.php (reviewed 2026-10-11); author explicitly did not investigate EEPROM
 
 ## Palazzetti Connection Box (firmware notes, 2020)
 
@@ -164,6 +306,10 @@ Profile `palazzetti-connbox`.
 | Address | Dec | Name | Unit | Scale | Values | Access | Status | Write certainty | Sources | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0x28–0x47 | 40 | Technical parameters (GET PARM / SET PARM) |  |  |  | rw | reported | unverified | connbox-2020 | Start address from the notes; length unknown (32 is a placeholder). Values above 201 noted as invalid. |
+
+### Claim-specific evidence
+
+Source credit distinguishes address, representation and interpretation. A third-party address is not evidence of Lara applicability. Legacy sources without structured claims remain unclassified.
 
 Sources:
 
@@ -237,8 +383,141 @@ Profile `palazzetti-ecofire-lara`.
 | 0x4D | 77 | Ambient fan setting V |  |  | 0=auto, 1=1, 2=2, 3=3, 4=4, 5=5 | rw | observed | unverified | notes-2020 |  |
 | 0x4E | 78 | Target temperature | °C |  |  | rw | observed | unverified | notes-2020 | Plain degrees, not BCD (26 → 27 when raised by one). |
 
+### Claim-specific evidence
+
+Source credit distinguishes address, representation and interpretation. A third-party address is not evidence of Lara applicability. Legacy sources without structured claims remain unclassified.
+
+- `power_state`: **own / panel_match**; supports address, meaning; `notes-2020` — Owner notes associate F9 states with off, starting, working and stopping; no command semantics established.
+- `power_state`: **own / variation**; supports meaning; `dump-2020` — Four historical cycles follow the recorded state sequence. Accepted legacy callbacks are not newly checksum-validated wire evidence.
+- `phase_step`: **own / variation**; supports meaning; `dump-2020` — Values correlate with the F9 phase; sequencer interpretation remains a hypothesis, not a command.
+- `fumes_temperature`: **own / panel_match**; supports address, meaning; `notes-2020` — Owner temperature observations support RAM 42 as fumes temperature; no new instrument comparison performed.
+- `fumes_temperature`: **own / variation**; supports meaning, range; `dump-2020` — Historical evolution follows heating and cooling; recorded ranges are observations, not safe bounds or defaults.
+- `fumes_temperature`: **external / source_table**; supports encoding; `ridiculouslab` — Reports unit-scale flue temperature on another board at RAM 5A. Useful representation comparison only; 5A temperature is refuted on Lara.
+- `room_temperature`: **own / variation**; supports meaning; `dump-2020` — Slow 19–27 evolution is temperature-like; probe identity and conversion are not confirmed by a panel match.
+- `room_temperature`: **external / source_code**; supports encoding; `esphome-representation` — Other-board ambient temperature uses raw/2. Test this against paired Lara readings rather than importing address 01 or assuming unit scale.
+- `fumes_fan_speed`: **own / panel_match**; supports address, meaning; `notes-2020` — Owner notes identify RAM 37 extractor behavior, with zero after shutdown; the rpm conversion still needs paired panel readings.
+- `fumes_fan_speed`: **own / variation**; supports meaning; `dump-2020` — Zero off and changing values when running support extractor-related interpretation.
+- `fumes_fan_speed`: **external / source_description**; supports encoding; `esphome-representation` — Other-board rpm representation is raw times 10 plus a model-dependent offset. Lara offset is not established.
+- `power_setting_ram_aux`: **own / panel_match**; supports address, meaning; `notes-2020` — Notes explicitly label RAM 47 as setting P alongside 65; synchronization remains unverified.
+- `fan_setting_ram_aux`: **own / panel_match**; supports address, meaning; `notes-2020` — Notes explicitly label RAM 46 as setting V alongside 66; no write evidence.
+- `clock_minute`: **own / panel_match**; supports address, meaning, encoding; `notes-2020` — Owner notes identify minutes at RAM 5E in BCD, independently of generic clock addresses.
+- `clock_hour`: **own / panel_match**; supports address, meaning, encoding; `notes-2020` — Owner notes identify hours at RAM 5F in BCD; not a borrowed generic offset.
+- `clock_weekday`: **own / panel_match**; supports address, meaning, encoding; `dump-2020` — Historical dates associate Monday with 1 and Tuesday with 2 at RAM 60; enum is independent of other-model weekday numbering.
+- `constants_0x23`: **own / static_value**; supports address; `notes-2020` — Thirteen historical constant readings are recorded at 23–2F; constant does not mean default or identify the parameter.
+- `constants_0x23`: **own / adjacency**; supports meaning, layout; `service-menu` — Recorded service values ST OFF SC=43, ST STEP SC=20, DASS MOD P=10, D CICLO FC=10, ST BLACKOUT=60, D ALL GEN=20, T ALL PELL=80 suggest testing 23–28 as an ordered group; a possible times-six encoding at 26 and duplicate small values make this unproven. No member assigned a setting name.
+- `board_model`: **own / static_value**; supports address; `dump-2020` — RAM 0D is constant E8 in the historical capture; constancy alone does not identify a board.
+- `board_model`: **own / disassembly**; supports meaning; `connbox-2020` — Historical Connection Box notes read RAM 0D for model dispatch; the Lara model branch is not verified.
+- `chrono_programs`: **own / panel_change**; supports address; `notes-2020` — Notes record EEPROM 62 and 63 changing during program editing; which display value each byte represents is unresolved.
+- `chrono_programs`: **own / adjacency**; supports layout; `notes-2020` — Listed program starts suggest triplets beginning at decimal 59. Notes contain gaps/typos and the tentative end overlaps power at decimal 76; not a validated structure.
+- `chrono_programs`: **external / source_table**; supports encoding; `eni23-representation` — Another board stores schedule times in ten-minute units. Candidate representation only; Lara triplet times are not decoded.
+- `chrono_days`: **own / panel_match**; supports address, meaning, encoding; `notes-2020` — Owner notes associate decimal EEPROM 61 with the displayed day-selection labels 0–9; not a generic seven-byte day mask.
+- `power_setting`: **own / panel_match**; supports address, meaning, encoding; `notes-2020` — Owner notes explicitly associate decimal EEPROM 76 with P=auto/1/2/3/4; no safe bus write was established.
+- `fan_setting`: **own / panel_match**; supports address, meaning; `notes-2020` — Owner notes associate decimal EEPROM 77 with V. The full recorded enum needs renewed panel verification.
+- `target_temperature`: **own / panel_change**; supports address, meaning, encoding; `notes-2020` — Recorded display change 26 to 27 corresponds to decimal EEPROM 78 changing by one in plain degrees, not BCD; this is a physical-menu observation, not our serial write.
+- `service_d_a1`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_d_a2`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_d_a3`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_g_a1`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_g_a1`: **external / source_table**; supports encoding; `forum-representation` — Another-board service extractor parameters use 10*raw+250. A search representation only; does not establish the Lara service label's encoding, bias or offset.
+- `service_g_a1`: **external / source_description**; supports encoding; `esphome-representation` — Live extractor sensors use times ten plus configurable bias. Live-sensor conversion is not proof of stored service-setting representation.
+- `service_g_a2`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_g_a2`: **external / source_table**; supports encoding; `forum-representation` — Another-board service extractor parameters use 10*raw+250. A search representation only; does not establish the Lara service label's encoding, bias or offset.
+- `service_g_a2`: **external / source_description**; supports encoding; `esphome-representation` — Live extractor sensors use times ten plus configurable bias. Live-sensor conversion is not proof of stored service-setting representation.
+- `service_g_a3`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_g_a3`: **external / source_table**; supports encoding; `forum-representation` — Another-board service extractor parameters use 10*raw+250. A search representation only; does not establish the Lara service label's encoding, bias or offset.
+- `service_g_a3`: **external / source_description**; supports encoding; `esphome-representation` — Live extractor sensors use times ten plus configurable bias. Live-sensor conversion is not proof of stored service-setting representation.
+- `service_doff_coc_a1`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_doff_coc_a2`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_doff_coc_a3`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_d_resist`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_d_on_dp_a`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_g_dp_a`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_g_dp_a`: **external / source_table**; supports encoding; `forum-representation` — Another-board service extractor parameters use 10*raw+250. A search representation only; does not establish the Lara service label's encoding, bias or offset.
+- `service_g_dp_a`: **external / source_description**; supports encoding; `esphome-representation` — Live extractor sensors use times ten plus configurable bias. Live-sensor conversion is not proof of stored service-setting representation.
+- `service_st_a`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_g_fumi_p1`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_g_fumi_p1`: **external / source_table**; supports encoding; `forum-representation` — Another-board service extractor parameters use 10*raw+250. A search representation only; does not establish the Lara service label's encoding, bias or offset.
+- `service_g_fumi_p1`: **external / source_description**; supports encoding; `esphome-representation` — Live extractor sensors use times ten plus configurable bias. Live-sensor conversion is not proof of stored service-setting representation.
+- `service_g_fumi_p2`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_g_fumi_p2`: **external / source_table**; supports encoding; `forum-representation` — Another-board service extractor parameters use 10*raw+250. A search representation only; does not establish the Lara service label's encoding, bias or offset.
+- `service_g_fumi_p2`: **external / source_description**; supports encoding; `esphome-representation` — Live extractor sensors use times ten plus configurable bias. Live-sensor conversion is not proof of stored service-setting representation.
+- `service_g_fumi_p3`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_g_fumi_p3`: **external / source_table**; supports encoding; `forum-representation` — Another-board service extractor parameters use 10*raw+250. A search representation only; does not establish the Lara service label's encoding, bias or offset.
+- `service_g_fumi_p3`: **external / source_description**; supports encoding; `esphome-representation` — Live extractor sensors use times ten plus configurable bias. Live-sensor conversion is not proof of stored service-setting representation.
+- `service_g_fumi_p4`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_g_fumi_p4`: **external / source_table**; supports encoding; `forum-representation` — Another-board service extractor parameters use 10*raw+250. A search representation only; does not establish the Lara service label's encoding, bias or offset.
+- `service_g_fumi_p4`: **external / source_description**; supports encoding; `esphome-representation` — Live extractor sensors use times ten plus configurable bias. Live-sensor conversion is not proof of stored service-setting representation.
+- `service_don_coc`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_fumi_percent`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_doff_coc_p1`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_doff_coc_p2`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_doff_coc_p3`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_doff_coc_p4`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_v_scamb_1`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_v_scamb_2`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_v_scamb_3`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_v_scamb_4`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_st_scamb_mx`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_st_off_sc`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_st_step_sc`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_dass_mod_p`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_d_ciclo_fc`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_st_blackout`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_d_all_gen`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `service_t_all_pell`: **own / panel_match**; supports meaning; `service-menu` — Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established.
+- `display_message`: **external / source_table**; supports meaning, encoding; `ridiculouslab` — Another board exposes display text in ASCII at RAM 8D–9C. This supplies a search representation, not Lara location or presence.
+- `chrono_enable`: **external / source_table**; supports meaning, encoding; `eni23-representation` — Another-board daily timer has an enable byte 0/1. Search Lara without copying its offset.
+
+### Unlocated parameters
+
+Inventory only: no address, no generated entity, no assumed storage or encoding.
+
+| Parameter | Memory to investigate | Category | Notes |
+|---|---|---|---|
+| D A1 | eeprom | Service parameters | Displayed service label; EEPROM storage is a search hypothesis, not established. Units and representation unresolved. |
+| D A2 | eeprom | Service parameters |  |
+| D A3 | eeprom | Service parameters |  |
+| G A1 | eeprom | Service parameters |  |
+| G A2 | eeprom | Service parameters |  |
+| G A3 | eeprom | Service parameters |  |
+| DOFF COC A1 | eeprom | Service parameters |  |
+| DOFF COC A2 | eeprom | Service parameters |  |
+| DOFF COC A3 | eeprom | Service parameters |  |
+| D RESiST | eeprom | Service parameters |  |
+| D ON DP A | eeprom | Service parameters |  |
+| G DP A | eeprom | Service parameters |  |
+| ST A | eeprom | Service parameters |  |
+| G FUMI P1 | eeprom | Service parameters |  |
+| G FUMI P2 | eeprom | Service parameters |  |
+| G FUMI P3 | eeprom | Service parameters |  |
+| G FUMI P4 | eeprom | Service parameters |  |
+| DON COC | eeprom | Service parameters |  |
+| G.+/- %FUMI | eeprom | Service parameters |  |
+| DOFF COC P1 | eeprom | Service parameters |  |
+| DOFF COC P2 | eeprom | Service parameters |  |
+| DOFF COC P3 | eeprom | Service parameters |  |
+| DOFF COC P4 | eeprom | Service parameters |  |
+| V.SCAMB.1 | eeprom | Service parameters |  |
+| V.SCAMB.2 | eeprom | Service parameters |  |
+| V.SCAMB.3 | eeprom | Service parameters |  |
+| V.SCAMB.4 | eeprom | Service parameters |  |
+| ST.SCAMB.MX | eeprom | Service parameters |  |
+| ST. OFF. SC | eeprom | Service parameters | Compare historical value and adjacency around RAM 23; this is not an EEPROM location. |
+| ST. STEP SC | eeprom | Service parameters | Compare historical value and adjacency around RAM 24; this is not an EEPROM location. |
+| DASS MOD P | eeprom | Service parameters |  |
+| D CICLO FC | eeprom | Service parameters |  |
+| ST.BLACKOUT | eeprom | Service parameters |  |
+| D.ALL. GEN | eeprom | Service parameters |  |
+| T.ALL.PELL. | eeprom | Service parameters |  |
+| Display message / panel text | ram | State & phases | External RAM 8D–9C is not assigned to Lara. Need a paired panel-text capture. |
+| Chrono enable state | eeprom | Clock & scheduling | Other models have enable bytes; no distinct Lara enable address established. |
 Sources:
 
+- `service-menu`: Owner service-menu notes, private palazzetti-ecofire-lara/settings/manu-sav.md; observation date and firmware unknown
+- `esphome-representation`: ESPHome Micronova sensor implementations: https://github.com/esphome/esphome/blob/dev/esphome/components/micronova/sensor/__init__.py and https://esphome.io/components/micronova/ (reviewed 2026-10-11); other stoves, not Lara address evidence
+- `ridiculouslab`: Micronova protocol analysis: https://www.ridiculouslab.com/arguments/iot/stufa/micronova_en.php (reviewed 2026-10-11); RAM mapping only, not Lara or EEPROM evidence
+- `forum-representation`: Third-party parameter formulas: https://stufapellet.forumcommunity.net/?t=53061907 (historical table retained in private notes/2020-palazzetti-repo/NOTES); not Lara offsets or safe ranges
+- `eni23-representation`: L'Asolana Marina mapping: https://github.com/eni23/micronova-controller (README reviewed 2026-10-11); decimal live clock versus BCD stored clock and 10-minute schedule units are candidates only for Lara
 - `connbox-2020`: Connection Box disassembly notes (2020), private repo notes/2020-palazzetti-repo/COMMANDS; model branch not verified on Lara
 - `notes-2020`: Manual observations (2020), private repo notes/2020-palazzetti-repo
 - `dump-2020`: RAM capture 2020-02-10..12, private repo dumps/2020-02-10-ram

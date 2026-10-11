@@ -6,6 +6,7 @@
 profile: micronova-common
 title: Micronova (generic, community consensus)
 sources:
+  esphome-code: "Current ESPHome sensor defaults and conversions: https://github.com/esphome/esphome/blob/dev/esphome/components/micronova/sensor/__init__.py (reviewed 2026-10-11); not Lara applicability"
   esphome-micronova: "ESPHome Micronova component defaults: https://esphome.io/components/micronova/"
   stufapellet: "StufaPellet community protocol/project: https://stufapellet.forumcommunity.net/?t=53061907 (original archive retained privately)"
   forum: Community table of a Micronova board (see micronova-forum.yaml)
@@ -19,6 +20,8 @@ fields:
     scale: 0.5
     status: reported
     sources: [esphome-micronova, stufapellet]
+    evidence:
+      - {source: esphome-code, origin: external, method: source_code, supports: [address, meaning, encoding], claim: "ESPHome default room sensor reads RAM 01 and divides by two; not a Lara probe identification."}
   - id: water_temperature
     category: Temperatures
     mem: ram
@@ -63,6 +66,8 @@ fields:
     name: Actual power level
     status: reported
     sources: [esphome-micronova, stufapellet]
+    evidence:
+      - {source: esphome-code, origin: external, method: source_code, supports: [address, meaning, encoding], claim: "ESPHome default power sensor reads RAM 34 with no divisor. Refuted as actual power in the Lara profile."}
   - id: fumes_fan_speed
     category: Combustion & fans
     mem: ram
@@ -72,6 +77,8 @@ fields:
     scale: 10
     status: reported
     sources: [esphome-micronova]
+    evidence:
+      - {source: esphome-micronova, origin: external, method: source_description, supports: [address, meaning, encoding], claim: "ESPHome default extractor address with raw times ten plus configurable model offset. Address and offset remain model-dependent."}
     notes: rpm = value × 10 + model specific offset (ESPHome `fan_rpm_offset`), 0 when stopped.
   - id: water_temperature_alt
     category: Temperatures
@@ -82,6 +89,8 @@ fields:
     scale: 0.5
     status: reported
     sources: [esphome-micronova]
+    evidence:
+      - {source: esphome-code, origin: external, method: source_code, supports: [address, meaning, encoding], claim: "Current ESPHome water sensor default is RAM 3B divided by two. Other sources report unit scale; applicability is board-specific."}
   - id: water_pressure
     category: Combustion & fans
     mem: ram
@@ -91,6 +100,8 @@ fields:
     scale: 0.1
     status: reported
     sources: [esphome-micronova]
+    evidence:
+      - {source: esphome-code, origin: external, method: source_code, supports: [address, meaning, encoding], claim: "Current ESPHome default reads RAM 3C divided by ten. A hydro-specific parameter is not automatically present on an air stove."}
   - id: fumes_temperature
     category: Temperatures
     mem: ram
@@ -99,6 +110,8 @@ fields:
     unit: °C
     status: reported
     sources: [esphome-micronova, stufapellet]
+    evidence:
+      - {source: esphome-code, origin: external, method: source_code, supports: [address, meaning, encoding], claim: "Current ESPHome default reads RAM 5A without a divisor. This temperature interpretation is refuted for Lara."}
   - id: target_temperature
     category: User settings
     mem: eeprom

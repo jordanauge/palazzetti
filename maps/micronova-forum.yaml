@@ -93,6 +93,8 @@ fields:
     access: rw
     status: reported
     sources: [forum]
+    evidence:
+      - {source: forum, origin: external, method: source_table, supports: [address, meaning, encoding, layout], claim: "Historical third-party PG/PF table supplies per-member offsets and affine conversion formulas; no Lara applicability or safe bounds verified."}
     notes: Third-party parameter table only, not Lara settings. Address 16 is unassigned in the source. Conversion units not explicitly established for every row.
     members:
       - {id: pg00, name: PG00 cleaning interval, byte_offset: 0}
@@ -141,6 +143,8 @@ fields:
     access: rw
     status: reported
     sources: [forum]
+    evidence:
+      - {source: forum, origin: external, method: source_table, supports: [address, meaning, encoding, layout], claim: "Historical table reports three adjustment bytes at decimal 54–56 with value=5*raw-45. Not Lara offsets."}
     members:
       - {id: p100, name: P100 auger variation, byte_offset: 0, scale: 5, offset: -45}
       - {id: p101, name: P101 suction variation, byte_offset: 1, scale: 5, offset: -45}
@@ -154,6 +158,8 @@ fields:
     access: rw
     status: reported
     sources: [forum]
+    evidence:
+      - {source: forum, origin: external, method: source_table, supports: [address, meaning, encoding, layout], claim: "Historical table supplies four start/stop pairs in ten-minute units and seven day flags per program, with gaps. Not the Lara tentative triplets."}
     notes: Third-party layout; not the tentative six-triplet Lara layout. Slots at decimal 86, 96 and 106 are unassigned in the table. Day-flag values other than 0/1 are not established.
     members:
       - {id: enabled, name: Chrono enabled, byte_offset: 0}

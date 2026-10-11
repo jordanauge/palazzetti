@@ -33,7 +33,7 @@ jobs:
         run: .venv/bin/pytest tests/test_maps.py tests/test_memory_html.py -q
       - name: Generate public atlas without private captures
         run: |
-          .venv/bin/plz gen-html palazzetti-ecofire-lara micronova-common micronova-forum micronova-p937 palazzetti-connbox -o docs
+          .venv/bin/plz gen-html palazzetti-ecofire-lara micronova-common micronova-forum micronova-p937 palazzetti-connbox micronova-ridiculouslab micronova-marina -o docs
           mkdir -p _site
           cp docs/index.html docs/memory-ram.html docs/memory-eeprom.html _site/
       - uses: actions/upload-pages-artifact@v3

@@ -89,6 +89,17 @@ async function main() {
     await evaluate('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape"}))');
     assert.equal(await evaluate('document.querySelectorAll(".selected").length'),0);
     assert.equal(await evaluate('document.querySelectorAll(".hovered").length'),0);
+    await evaluate('document.querySelector("[data-field=\'service_g_fumi_p1\']").click()');
+    assert.equal(await evaluate('document.querySelectorAll(".byte.selected").length'),0);
+    assert.equal(await evaluate('document.querySelectorAll(".field-entry.selected").length'),1);
+    assert.match(await evaluate('document.getElementById("details").textContent'),/Unlocated parameter/);
+    assert.match(await evaluate('document.getElementById("details").textContent'),/Our reverse engineering/);
+    assert.match(await evaluate('document.getElementById("details").textContent'),/External reference/);
+    assert.match(await evaluate('document.getElementById("details").textContent'),/supports: encoding/);
+    assert.equal(await evaluate('document.querySelectorAll("#details a").length>=2'),true);
+    await evaluate('document.querySelector("[data-field=\'fumes_temperature\']").click()');
+    assert.match(await evaluate('document.getElementById("details").textContent'),/panel_match/);
+    assert.equal(await evaluate('document.querySelector("#details a[href*=\'ridiculouslab.com\']")!==null'),true);
     assert.equal(await evaluate('document.getElementById("capture").options.length'),1);
     await evaluate(`const profileId=data.profiles[0].id;
       const observed={n:1,last:26,min:26,max:26,changes:0,distinct:1,rejected:0,
@@ -135,6 +146,7 @@ async function main() {
     assert.match(await evaluate('document.getElementById("details").textContent'),/chrono_programs.program_1.stop/);
     await evaluate('document.querySelector("[data-address=\'61\']").click()');
     assert.match(await evaluate('document.getElementById("details").textContent'),/mon-fri/);
+    assert.match(await evaluate('document.getElementById("details").textContent'),/Parent Chrono programs/);
     await evaluate('document.getElementById("search").value="chrono";document.getElementById("search").dispatchEvent(new Event("input"))');
     assert.equal(await evaluate('document.querySelectorAll(".byte:not(.dim)").length'),18);
     assert.equal(await evaluate('document.querySelector("[data-field=\'power_setting\']").hidden'),true);

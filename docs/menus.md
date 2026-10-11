@@ -36,6 +36,10 @@ The notes contain feeder timing (`DON COC`, `DOFF COC`), extractor speed (`G FUM
 heat-exchanger fan (`V.SCAMB.`), ignition and temperature/alarm groups. Their
 EEPROM offsets remain to be established. Recorded values are evidence for
 read-only identification, not recommended tuning values or safe bounds.
+All 35 historical service labels are now listed as **unlocated targets** in the
+[atlas](https://jordanauge.github.io/palazzetti/memory-eeprom.html), with source credit
+and representation hypotheses rather than invented offsets. See the
+[evidence workflow](reverse-engineering.md#locating-the-service-settings).
 No access-code recipe, reset procedure or output-test instructions are provided.
 Changing combustion or safety parameters needs manufacturer-approved service.
 

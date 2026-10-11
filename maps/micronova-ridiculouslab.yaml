@@ -1,0 +1,61 @@
+profile: micronova-ridiculouslab
+title: Micronova (ridiculouslab reference board, not Lara)
+sources:
+  ridiculouslab: "Micronova protocol analysis: https://www.ridiculouslab.com/arguments/iot/stufa/micronova_en.php (reviewed 2026-10-11); author explicitly did not investigate EEPROM"
+fields:
+  - id: infrared_command
+    mem: ram
+    addr: 0x58
+    name: Infrared command byte (reported)
+    category: State & phases
+    status: reported
+    sources: [ridiculouslab]
+    notes: "Source lists P+=50 and P-=54 (hex), opposite eni23's labels. No safe Lara command established. The EEPROM write header is also printed as 0x0A in prose; do not treat a source typo as protocol evidence."
+    evidence:
+      - {source: ridiculouslab, origin: external, method: source_table, supports: [address, encoding], claim: "Reported IR command representation on another board; conflicting P+/P- labels preserved rather than resolved by assumption."}
+  - id: cpu_counter
+    mem: ram
+    addr: 0x00
+    name: Internal CPU counter
+    category: Identification & constants
+    status: reported
+    sources: [ridiculouslab]
+    evidence: &reference-table
+      - {source: ridiculouslab, origin: external, method: source_table, supports: [address, meaning, encoding], claim: "Reported RAM-table entry for the author's reference board. Neither its address nor representation is validated on Lara."}
+  - {id: room_temperature, mem: ram, addr: 0x01, name: Ambient temperature, category: Temperatures, scale: 0.5, unit: "°C", status: reported, sources: [ridiculouslab], evidence: *reference-table}
+  - {id: water_temperature, mem: ram, addr: 0x03, name: Water temperature, category: Temperatures, unit: "°C", status: reported, sources: [ridiculouslab], evidence: *reference-table, notes: "Source reports unit scale; differs from ESPHome raw/2. Keep both profiles, do not average conversions."}
+  - {id: auger_time, mem: ram, addr: 0x0D, name: Pellet load activation time, category: Combustion & fans, unit: s, scale: 10, status: reported, sources: [ridiculouslab], evidence: *reference-table, notes: "Source's times-ten scale differs from the forum table. Not a Lara feeder identification."}
+  - {id: status, mem: ram, addr: 0x21, name: Stove state, category: State & phases, status: reported, sources: [ridiculouslab], evidence: *reference-table, notes: "On/off writes are marked untested by the source; no write permission."}
+  - {id: power_actual, mem: ram, addr: 0x34, name: Actual power, category: Combustion & fans, status: reported, sources: [ridiculouslab], evidence: *reference-table}
+  - {id: fumes_fan_speed, mem: ram, addr: 0x37, name: Fumes extractor speed, category: Combustion & fans, unit: rpm, scale: 10, status: reported, sources: [ridiculouslab], evidence: *reference-table, notes: "Source specifies a model-dependent offset in addition to times ten; no offset established for Lara."}
+  - {id: water_temperature_alt, mem: ram, addr: 0x3B, name: Water temperature copy, category: Temperatures, unit: "°C", status: reported, sources: [ridiculouslab], evidence: *reference-table}
+  - {id: fumes_temperature, mem: ram, addr: 0x5A, name: Fumes temperature, category: Temperatures, unit: "°C", status: reported, sources: [ridiculouslab], evidence: *reference-table}
+  - id: clock
+    mem: ram
+    addr: 0x65
+    count: 7
+    name: Clock fields (reported order)
+    category: Clock & scheduling
+    status: reported
+    sources: [ridiculouslab]
+    evidence:
+      - {source: ridiculouslab, origin: external, method: source_table, supports: [address, meaning, layout], claim: "Source lists seconds/weekday/hours/minutes/day/month/year over 65–6B. Byte encoding and exact board identity require verification; not Lara's BCD layout."}
+    members:
+      - {id: second, name: Seconds, byte_offset: 0}
+      - {id: weekday, name: Weekday, byte_offset: 1}
+      - {id: hour, name: Hours, byte_offset: 2}
+      - {id: minute, name: Minutes, byte_offset: 3}
+      - {id: day, name: Day of month, byte_offset: 4}
+      - {id: month, name: Month, byte_offset: 5}
+      - {id: year, name: Year, byte_offset: 6}
+  - id: display_message
+    mem: ram
+    addr: 0x8D
+    count: 16
+    name: Display message (reported ASCII)
+    category: State & phases
+    status: reported
+    sources: [ridiculouslab]
+    notes: "Reported ASCII bytes; no assumed Lara display address. Decode only actual captured bytes."
+    evidence:
+      - {source: ridiculouslab, origin: external, method: source_table, supports: [address, meaning, encoding, layout], claim: "Source identifies ASCII LCD text at RAM 8D–9C. Its Modbus addresses are separately translated by 100 and are not serial EEPROM addresses."}

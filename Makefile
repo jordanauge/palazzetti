@@ -53,7 +53,7 @@ test-compile:
 
 gen docs:
 	$(UV) run plz gen-docs -o docs/memory-map.md
-	$(UV) run plz gen-html palazzetti-ecofire-lara micronova-common micronova-forum micronova-p937 palazzetti-connbox -o docs $(foreach c,$(HTML_CAPTURES),--capture $(c)) $(foreach d,$(HTML_LEGACY_DIRS),--legacy-dir $(d))
+	$(UV) run plz gen-html palazzetti-ecofire-lara micronova-common micronova-forum micronova-p937 palazzetti-connbox micronova-ridiculouslab micronova-marina -o docs $(foreach c,$(HTML_CAPTURES),--capture $(c)) $(foreach d,$(HTML_LEGACY_DIRS),--legacy-dir $(d))
 	@for p in $(PROFILES); do $(UV) run plz gen-esphome $$p -o example/$$p.entities.yaml; done
 
 clean:

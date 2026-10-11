@@ -141,12 +141,57 @@ PLZ_HOST=127.0.0.1 uv run plz dump ram:0-0xFF
   Automatic write generation currently supports only `uint8`, not multi-byte or BCD fields.
   Enumerated fields allow only listed values within those bounds;
 - `sources`: keys of the profile's `sources` (notes, captures, manuals);
+- `evidence`: claim-specific source, origin, method and scope; see
+  [map schema](../maps/README.md#claim-specific-provenance). Credit a reference separately
+  for a reported address, encoding, layout or insight. Do not make a representation
+  hint into Lara address evidence;
 - [micronova-common.yaml](../maps/micronova-common.yaml) lists the community-consensus Micronova layout. A profile
   can `extends` another profile: its fields are merged by `id`, and the child's keys win. This is how the same
   parameter can live at a different address on another stove. See [maps/README.md](../maps/README.md).
 
 `make gen` regenerates [memory-map.md](memory-map.md) and the ESPHome entity packages. Hypotheses are generated
 disabled by default.
+
+### Locating the service settings
+
+The Lara profile has an **unlocated inventory** of all 35 historical service labels,
+plus unresolved display-text and chrono-enable targets. This is a completion checklist,
+not an EEPROM map. Known user settings remain in `fields`; unidentified targets remain
+in `unlocated` until a justified address hypothesis can be recorded.
+Other-model documents can supply additional **conditional** targets, but a hydro-water,
+pump, pressure or Fumis-specific parameter need not exist on this air stove.
+Even a corresponding setting may be computed, split, packed, stored outside accessible
+EEPROM or represented by an index. Absence of a match is not proof of absence.
+
+Use the following evidence chain before promoting a candidate:
+
+1. Identify stove, board, firmware, menu path and units. Keep dated actual values,
+   manufacturer defaults and model-specific allowed ranges separate.
+2. Take repeated checked EEPROM backups and timestamped RAM observations using
+   [acquisition](acquisition.md). No independently checked Lara EEPROM backup has
+   yet been supplied; a complete map cannot be claimed.
+3. Test **explicit** representations suggested by sources: plain/scaled integers,
+   model bias, signed adjustment, BCD, ten-minute schedule units, bit fields or
+   multi-byte endianness. Record the source for each suggestion. Avoid arbitrary
+   conversions chosen merely to make one number match.
+4. Match multiple distinct paired panel readings if safe observations exist.
+   Duplicate zeros, common values and a single default/range match produce many
+   candidates; retain them all with their ambiguity.
+5. Check variation and nearby bytes. Ordered P1–P4 groups or service-menu order can
+   strengthen a candidate structure, but adjacency alone does not identify it.
+   RAM mirrors and sequential sampling can differ from stored settings.
+6. Prefer passive normal-use observations. Do not change combustion/safety settings,
+   reset defaults or run output tests merely to identify bytes. Any user-approved
+   physical-menu change must be dated and labelled `panel_change`, not serial write
+   evidence.
+7. Record counterevidence, missing support and alternate interpretations per byte.
+   Promote reading semantics only when supported; safe writes require their own
+   independent policy evidence.
+
+The constant RAM block `23–2F` has a **tentative adjacency clue** against the tail
+of the historical service settings. It is not an assigned service structure and
+provides no EEPROM offset. This is the kind of clue to preserve without upgrading
+certainty.
 
 ## 9. Read evidence API and Lara on/off investigation
 

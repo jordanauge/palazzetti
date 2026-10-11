@@ -126,6 +126,7 @@ def render(memory: str, names: list[str], captures: list[dict] | None = None) ->
         profiles.append({
             "id": profile["profile"], "title": profile["title"], "sources": profile["sources"],
             "fields": [region(field) for field in profile["fields"] if field["mem"] == memory],
+            "unlocated": profile.get("unlocated", []),
         })
     memory_captures = [
         {**record, "bytes": {key: value for key, value in record["bytes"].items()

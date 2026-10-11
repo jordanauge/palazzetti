@@ -24,6 +24,60 @@ def test_extends_merges_by_id():
     assert {f["id"] for f in common.values()} <= ids
 
 
+def test_unlocated_settings_never_generate_guessed_entities():
+    p = maps.load("palazzetti-ecofire-lara")
+    service = [f for f in p["unlocated"] if f["id"].startswith("service_")]
+    assert len(service) == 35
+    assert all("addr" not in f and f["memory_hint"] == "eeprom" for f in service)
+    out = yaml.safe_load(maps.gen_esphome("palazzetti-ecofire-lara"))
+    ids = {e["id"] for platform, entities in out.items() if platform != "palazzetti" for e in entities}
+    assert not ids.intersection(f["id"] for f in p["unlocated"])
+    assert out["palazzetti"]["write_allowlist"] == []
+    f = next(f for f in p["fields"] if f["id"] == "target_temperature")
+    assert f["evidence"][0]["method"] == "panel_change"
+    assert "encoding" in f["evidence"][0]["supports"]
+
+
+@pytest.mark.parametrize("override", [
+    {"source": "missing"}, {"origin": "guessed"}, {"method": "correlated-ish"},
+    {"supports": ["write_permission"]}, {"supports": []}, {"claim": ""},
+])
+def test_evidence_claims_are_validated(override):
+    record = {"source": "source", "origin": "own", "method": "variation",
+              "supports": ["meaning"], "claim": "Observed evolution, not proof."}
+    with pytest.raises(ValueError):
+        maps._validate_evidence({"id": "test", "evidence": [{**record, **override}]}, {"source": "fixture"})
+
+
+def test_profile_override_does_not_inherit_inapplicable_evidence(tmp_path):
+    parent = tmp_path / "parent.yaml"
+    child = tmp_path / "child.yaml"
+    parent.write_text(yaml.safe_dump({
+        "profile": "parent", "sources": {"source": "fixture"},
+        "fields": [{"id": "field", "addr": 1, "evidence": [{
+            "source": "source", "origin": "external", "method": "source_table",
+            "supports": ["address"], "claim": "Parent-board address only.",
+        }]}],
+    }))
+    child.write_text(yaml.safe_dump({"profile": "child", "extends": str(parent),
+                                    "fields": [{"id": "field", "addr": 2}]}))
+    assert "evidence" not in maps.load(str(child))["fields"][0]
+
+
+def test_reference_conflicts_and_representation_only_lara_credit():
+    ridiculous = {f["id"]: f for f in maps.load("micronova-ridiculouslab")["fields"]}
+    common = {f["id"]: f for f in maps.load("micronova-common")["fields"]}
+    assert ridiculous["water_temperature"].get("scale", 1) == 1
+    assert common["water_temperature"]["scale"] == 0.5
+    assert not any(f["mem"] == "eeprom" for f in ridiculous.values())
+    marina = maps.load("micronova-marina")
+    assert len([f for f in marina["fields"] if f["addr"] == 0x7B]) == 2
+    lara = maps.load("palazzetti-ecofire-lara")
+    fumes = next(f for f in lara["fields"] if f["id"] == "fumes_temperature")
+    external = [r for r in fumes["evidence"] if r["origin"] == "external"]
+    assert external and all("address" not in r["supports"] for r in external)
+
+
 def test_lara_state_register():
     lara = maps.by_key(maps.load("palazzetti-ecofire-lara"))
     state = lara["ram", 0xF9]

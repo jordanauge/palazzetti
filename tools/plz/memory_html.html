@@ -90,11 +90,36 @@ function flatten(fields,parents=[]){
 }
 function fieldsAt(addr){return regions.filter(f=>addr>=f.addr && addr<f.addr+f.width);}
 function observation(addr){return capture?.bytes[data.memory+":"+addr];}
+function credit(key,parent){
+  const description=profile.sources[key]||"source description absent";
+  const p=text("p",`${key}: ${description}`,parent);
+  const urls=description.match(/https?:\/\/[^\s)]+/g)||[];
+  for(const url of urls){
+    const link=text("a"," Open source",p);link.href=url;link.target="_blank";link.rel="noopener noreferrer";
+  }
+}
+function evidence(field,parent){
+  text("h3","Provenance & claim scope",parent);
+  if(!(field.evidence||[]).length)text("p","Legacy source attribution only: evidence method and claim scope not yet classified.",parent,"muted");
+  for(const record of field.evidence||[]){
+    const section=text("section","",parent,"field");
+    text("p",`${record.origin==="own"?"Our reverse engineering":"External reference"} · ${record.method} · supports: ${record.supports.join(", ")}`,section);
+    text("p",record.claim,section);credit(record.source,section);
+  }
+  for(const key of field.sources||[])if(!(field.evidence||[]).some(r=>r.source===key))credit(key,parent);
+  for(const region of field.parents||[])if(region.evidence?.length){
+    text("p",`Parent ${region.name||region.id}: the following claims concern its region, not automatic proof of this member's meaning.`,parent,"muted");
+    for(const record of region.evidence){
+      text("p",`${record.origin} / ${record.method} · ${record.supports.join(", ")}: ${record.claim}`,parent);
+      credit(record.source,parent);
+    }
+  }
+}
 function matchesFor(state){return state?(state.field?[state.field]:fieldsAt(state.addr)):[];}
 function highlight(){
   for(const [state,cls] of [[pinned,"selected"],[hovered,"hovered"]]){
     const matches=matchesFor(state);
-    buttons.forEach((b,i)=>b.classList.toggle(cls,!!state&&(i===state.addr||matches.some(f=>i>=f.addr&&i<f.addr+f.width))));
+    buttons.forEach((b,i)=>b.classList.toggle(cls,!!state&&!state.field?.unlocated&&(i===state.addr||matches.some(f=>i>=f.addr&&i<f.addr+f.width))));
     entries.forEach(({button,field})=>{
       const active=matches.some(f=>f.key===field.key);
       button.classList.toggle(cls,active);
@@ -110,25 +135,38 @@ function clearSelection(){
   text("p","Click a field, structure or byte to inspect its meaning and evidence.",el("details"));
 }
 function select(addr,field=null){
-  pinned={addr,field};show(addr,field);highlight();
+  pinned={addr,field};
+  if(field?.unlocated){
+    const panel=el("details");panel.replaceChildren();
+    text("h2",field.name,panel);
+    text("p","Unlocated parameter — no memory address assigned.",panel);
+    text("p",`Storage to investigate: ${field.memory_hint}. Presence and encoding still require matching model/firmware evidence.`,panel);
+    if(field.notes)text("p",field.notes,panel);
+    if(field.encoding_candidates)text("p","Representations to test, not established: "+field.encoding_candidates.join("; "),panel);
+    evidence(field,panel);
+  }else show(addr,field);
+  highlight();
 }
 function catalogue(){
   entries=[];el("field-list").replaceChildren();
-  const sorted=[...regions].sort((a,b)=>(a.name||a.id).localeCompare(b.name||b.id)||a.key.localeCompare(b.key));
+  const sorted=[...regions,...(profile.unlocated||[]).map(f=>({...f,key:f.id,parents:[],unlocated:true,status:"unknown"}))]
+    .sort((a,b)=>(a.name||a.id).localeCompare(b.name||b.id)||a.key.localeCompare(b.key));
   const groups=order==="alpha"?[["",sorted]]:[...new Set(sorted.map(category))].sort().map(c=>[c,sorted.filter(f=>category(f)===c)]);
   for(const [name,fields] of groups){
     if(name)text("h3",name,el("field-list"));
     for(const field of fields){
       const button=text("button",field.name||field.id,el("field-list"),"field-entry "+field.status);
       button.type="button";button.dataset.field=field.key;button.style.setProperty("--category",color(field));
-      text("small",`${field.width>1?"Region":"Field"} · ${hex(field.addr,4)} · ${field.status}`,button);
+      text("small",field.unlocated?`Unlocated · ${field.memory_hint} to investigate`:
+        `${field.width>1?"Region":"Field"} · ${hex(field.addr,4)} · ${field.status}`,button);
       if(field.parents.length)text("small",field.parents.map(p=>p.name||p.id).join(" / "),button);
       button.addEventListener("pointerenter",()=>preview({addr:field.addr,field}));
       button.addEventListener("pointerleave",()=>preview(null));
       button.addEventListener("focus",()=>preview({addr:field.addr,field}));
       button.addEventListener("blur",()=>preview(null));
       button.addEventListener("click",()=>{
-        select(field.addr,field);buttons[field.addr].scrollIntoView({block:"nearest",inline:"nearest"});
+        select(field.addr,field);
+        if(!field.unlocated)buttons[field.addr].scrollIntoView({block:"nearest",inline:"nearest"});
       });
       entries.push({button,field});
     }
@@ -170,12 +208,12 @@ function show(addr,field=null){
     text("p",`${f.status} · ${data.statuses[f.status]} · access ${f.access||"r"}`,section);
     text("p",`Category: ${category(f)}`,section);
     text("p",`Write certainty: ${f.write_status||"unverified"}${f.mem==="eeprom"?" · persistent EEPROM; separate permission required":""}`,section);
-    text("p",`Encoding ${f.encoding||"uint8"} · scale ${f.scale??1}${f.unit?" · "+f.unit:""}`,section);
+    text("p",`Configured decoder: ${f.encoding||"uint8"} · scale ${f.scale??1}${f.unit?" · "+f.unit:""} (configuration is not independent evidence)`,section);
     if(f.notes)text("p",f.notes,section);
     if(f.values)text("pre",Object.entries(f.values).map(([v,n])=>`${hex(Number(v))}: ${n}`).join("\n"),section);
     if(capture)text("p",decoded(f),section);
     if(f.members.length)text("pre",f.members.map(m=>`+${m.addr-f.addr}  ${m.name||m.id} (${m.width} byte(s))`).join("\n"),section);
-    for(const key of f.sources||[])text("small",`${key}: ${profile.sources[key]||"source description absent"}`,section);
+    evidence(f,section);
   }
   const section=text("section","",panel,"field");
   text("h3","Capture evidence",section);
@@ -206,7 +244,7 @@ function filter(){
     b.classList.toggle("dim",!!q&&(address!==null?addr!==address:!content.includes(q)));
   });
   entries.forEach(({button,field})=>{
-    button.hidden=!!q&&(address!==null?!(address>=field.addr&&address<field.addr+field.width):
+    button.hidden=!!q&&(address!==null?(field.unlocated||!(address>=field.addr&&address<field.addr+field.width)):
       ![field.key,field.name,field.notes,category(field),...field.parents.map(p=>p.name||p.id)].join(" ").toLowerCase().includes(q));
   });
 }
@@ -257,13 +295,13 @@ function rebuild(){
   const supported=buttons.filter((_,i)=>fieldsAt(i).some(f=>["observed","confirmed"].includes(f.status))).length;
   const seen=buttons.filter((_,i)=>observation(i)?.n).length;
   el("coverage").textContent=`${profile.title}: ${annotated}/${size} bytes annotated; ${supported} with observed/confirmed evidence. `+
-    `${regions.length} fields/regions, including hypotheses, unknowns and refutations. `+
+    `${regions.length} fields/regions, including hypotheses, unknowns and refutations; ${(profile.unlocated||[]).length} unlocated targets. `+
     (capture?`${seen} bytes with accepted capture data; ${date(capture.first)} to ${date(capture.last)}. ${capture.notes||""}`:"No measured byte values selected.");
   el("cell-caption").textContent=el("cell-mode").value==="address"
     ?"Cell text = low byte of the address (00–FF), not a reading. Row labels give the full address."
     :"Cell text = captured hex value; · = no valid reading. Mapping colors do not imply a measured value.";
   el("categories").replaceChildren();
-  for(const c of [...new Set(regions.map(category))].sort()){
+  for(const c of [...new Set([...regions,...(profile.unlocated||[])].map(category))].sort()){
     const span=text("span",c,el("categories"));span.style.background=categoryColors[c]||"#233043";
   }
   clearSelection();catalogue();
@@ -293,7 +331,8 @@ el("capture").addEventListener("change",guarded(()=>{
 }));
 el("cell-mode").addEventListener("change",guarded(()=>{
   const selection=pinned;rebuild();
-  if(selection)select(selection.addr,selection.field?regions.find(f=>f.key===selection.field.key):null);
+  if(selection)select(selection.addr,selection.field?.unlocated?selection.field:
+    selection.field?regions.find(f=>f.key===selection.field.key):null);
 }));
 for(const mode of ["alpha","category"]){
   el(mode+"-tab").addEventListener("click",()=>{order=mode;catalogue();});

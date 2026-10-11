@@ -13,6 +13,8 @@ a different address space and have no map here; see [boards.md](../docs/boards.m
 | [micronova-common.yaml](micronova-common.yaml) | community-consensus Micronova RAM/EEPROM layout (ESPHome `micronova`, StufaPellet) |
 | [micronova-forum.yaml](micronova-forum.yaml) | community table of one Micronova board: EEPROM parameter blocks, chrono |
 | [micronova-p937.yaml](micronova-p937.yaml) | P937 board variant (community JavaScript controller), `extends` micronova-common |
+| [micronova-ridiculouslab.yaml](micronova-ridiculouslab.yaml) | directly reviewed ridiculouslab RAM table, with scaling differences and source conflicts retained |
+| [micronova-marina.yaml](micronova-marina.yaml) | directly reviewed eni23 L'Asolana Marina RAM/EEPROM table, including decimal/BCD clock distinction |
 | [palazzetti-connbox.yaml](palazzetti-connbox.yaml) | addresses used by the Connection Box firmware (2020 disassembly notes), per model branch |
 | [palazzetti-ecofire-lara.yaml](palazzetti-ecofire-lara.yaml) | Ecofire Lara, from 2020 notes and a 47 h RAM capture |
 
@@ -25,6 +27,7 @@ a different address space and have no map here; see [boards.md](../docs/boards.m
 | `extends` | optional parent profile; fields are merged by `id`, child keys win |
 | `sources` | `key: description` of every evidence source used by the fields |
 | `fields` | list of fields (below) |
+| `unlocated` | inventory of parameters with no assigned address: `id`, `name`, `memory_hint` (`ram`, `eeprom`, `unknown`), category, notes, optional representation candidates and evidence |
 
 ## Field keys
 
@@ -46,6 +49,7 @@ a different address space and have no map here; see [boards.md](../docs/boards.m
 | `raw_min`, `raw_max` | | inclusive safe raw byte bounds required for confirmed writes |
 | `status` | `unknown` | `confirmed`, `observed`, `reported`, `hypothesis`, `unknown`, `refuted` |
 | `sources` | | keys of `sources` supporting the entry |
+| `evidence` | | list of claim-specific records: `source`, `origin` (`own`/`external`), `method`, `supports`, `claim` |
 | `notes` | | free text: observations, ranges, caveats |
 | `members` | | nested fields inside a block, used by the HTML viewer; each has `id`, `byte_offset` relative to its parent, optional `count`, `members`, and the usual descriptive keys |
 
@@ -55,6 +59,31 @@ offset in the value conversion. Unassigned bytes stay unknown. Structure boundar
 member meanings have the same evidence requirements as standalone fields. Nested members
 are generated as read-only leaf ESPHome entities at a slow cadence when their
 status is selected. Hypotheses remain visibly marked.
+
+### Claim-specific provenance
+
+`supports` lists one or more of `address`, `meaning`, `encoding`, `layout`, `range`,
+`default`, `applicability`. `method` is `source_table`, `source_code`,
+`source_description`, `disassembly`, `variation`, `panel_match`, `panel_change`,
+`static_value`, `default_match`, `range_match` or `adjacency`. The claim explains
+exactly what was observed/reported and what remains uncertain.
+For example, a panel change is a physical-menu action, **not** our serial write.
+Source credit for an encoding never implies that its address applies to Lara.
+Defaults and ranges require identified firmware/model evidence; historical actual
+readings and observed extrema are neither defaults nor safe limits.
+
+Members retain parent-region provenance in atlas details, explicitly labelled as
+region evidence rather than proof of every member meaning. Profile overrides of
+addresses, conversions or sources discard inherited evidence unless explicitly
+restated. Legacy source lists without structured claims are visibly unclassified.
+No evidence record grants write permission.
+
+`unlocated` entries appear in the atlas list and details, but **never** highlight a
+guessed byte, generate an entity or contribute to mapped-byte coverage. The 35
+historical service labels are listed separately from located user settings.
+`memory_hint: eeprom` is an investigation target, not established storage.
+Encoding candidates are possibilities to test, not configured conversions.
+Current/default readings and full backups remain private.
 
 Write generation requires observed/confirmed read status, `access: rw`,
 `write_status: confirmed`, nonempty `write_sources`, safe byte bounds and `uint8` encoding.

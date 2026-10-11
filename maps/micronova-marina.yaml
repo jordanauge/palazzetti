@@ -1,0 +1,89 @@
+profile: micronova-marina
+title: Micronova (L'Asolana Marina, eni23 reference)
+sources:
+  eni23: "L'Asolana Marina README mapping: https://github.com/eni23/micronova-controller (reviewed 2026-10-11); offsets explicitly model-dependent"
+fields:
+  - id: status
+    mem: ram
+    addr: 0x21
+    name: Stove state
+    category: State & phases
+    status: reported
+    sources: [eni23]
+    notes: "Source reports a slow shutdown via the state register and a different IR path. Neither path is a safe Lara command."
+    evidence:
+      - {source: eni23, origin: external, method: source_table, supports: [address, meaning], claim: "Other-board state mapping; different stopping behavior even among Micronova boards."}
+  - id: infrared_command
+    mem: ram
+    addr: 0x58
+    name: Infrared command byte
+    category: State & phases
+    status: reported
+    sources: [eni23]
+    notes: "Source lists P+=54, P-=50, T+=52, T-=58 and power=5A (hex). Ridiculouslab reverses the P+/P- labels. Read-only annotation; no Lara command authorized."
+    evidence:
+      - {source: eni23, origin: external, method: source_table, supports: [address, encoding], claim: "Other-board IR representation; source conflicts must be resolved before assigning command meanings."}
+  - id: room_temperature
+    mem: ram
+    addr: 0x01
+    name: Ambient temperature
+    category: Temperatures
+    scale: 0.5
+    unit: "°C"
+    status: reported
+    sources: [eni23]
+    evidence: &marina-table
+      - {source: eni23, origin: external, method: source_table, supports: [address, meaning, encoding], claim: "Reported L'Asolana Marina entry; location and conversion are not Lara evidence."}
+  - {id: power_setting_ram, mem: ram, addr: 0x19, name: Power setting (read-only reported), category: User settings, status: reported, sources: [eni23], evidence: *marina-table}
+  - {id: fan_output, mem: ram, addr: 0x0A, name: Hot-air fan output, category: Combustion & fans, status: reported, sources: [eni23], evidence: *marina-table, notes: "Source describes approximately 0–50, not a safe bound."}
+  - {id: fumes_temperature, mem: ram, addr: 0x3E, name: Fumes temperature, category: Temperatures, status: reported, sources: [eni23], evidence: *marina-table}
+  - {id: outlet_temperature_candidate, mem: ram, addr: 0x02, name: Temperature (outlet candidate), category: Temperatures, status: reported, sources: [eni23], evidence: *marina-table, notes: "Probe identity is tentative even in source."}
+  - {id: fumes_fan_speed, mem: ram, addr: 0x37, name: Fumes extractor speed, category: Combustion & fans, status: reported, sources: [eni23], evidence: *marina-table, notes: "README mapping does not establish a numeric conversion here."}
+  - {id: auger_time, mem: ram, addr: 0x0D, name: Pellet loading formula, category: Combustion & fans, status: reported, sources: [eni23], evidence: *marina-table}
+  - {id: clock_second, mem: ram, addr: 0x7B, name: Clock seconds (conflicting source row), category: Clock & scheduling, status: reported, sources: [eni23], evidence: *marina-table, notes: "Source also assigns weekday to 7B; preserve conflict instead of correcting the offset."}
+  - {id: clock_weekday, mem: ram, addr: 0x7B, name: Clock weekday (conflicting source row), category: Clock & scheduling, status: reported, sources: [eni23], evidence: *marina-table}
+  - {id: clock_hour, mem: ram, addr: 0x7C, name: Clock hours (decimal), category: Clock & scheduling, status: reported, sources: [eni23], evidence: *marina-table}
+  - {id: clock_minute, mem: ram, addr: 0x7D, name: Clock minutes (decimal), category: Clock & scheduling, status: reported, sources: [eni23], evidence: *marina-table}
+  - {id: clock_day, mem: ram, addr: 0x7E, name: Clock day (decimal), category: Clock & scheduling, status: reported, sources: [eni23], evidence: *marina-table}
+  - {id: clock_month, mem: ram, addr: 0x7F, name: Clock month (decimal), category: Clock & scheduling, status: reported, sources: [eni23], evidence: *marina-table}
+  - {id: clock_year, mem: ram, addr: 0x80, name: Clock year since 2000 (decimal), category: Clock & scheduling, status: reported, sources: [eni23], evidence: *marina-table}
+  - {id: target_temperature, mem: eeprom, addr: 0x7D, name: Target temperature, category: User settings, status: reported, sources: [eni23], evidence: *marina-table}
+  - {id: power_setting, mem: eeprom, addr: 0x7F, name: Power setting, category: User settings, status: reported, sources: [eni23], evidence: *marina-table}
+  - {id: night_mode, mem: eeprom, addr: 0x25, name: Night mode, category: User settings, values: {0: "off", 1: "on"}, status: reported, sources: [eni23], evidence: *marina-table}
+  - id: stored_clock
+    mem: eeprom
+    addr: 0xF8
+    count: 6
+    name: Stored clock (BCD time/date examples)
+    category: Clock & scheduling
+    status: reported
+    sources: [eni23]
+    evidence:
+      - {source: eni23, origin: external, method: source_table, supports: [address, encoding, layout], claim: "EEPROM time/date examples imply BCD, unlike the source's decimal RAM clock. Weekday enum is 1–7; no Lara offset or encoding inferred."}
+    members:
+      - {id: weekday, name: Weekday (Monday 1), byte_offset: 0}
+      - {id: hour, name: Hour, byte_offset: 1, encoding: bcd}
+      - {id: minute, name: Minute, byte_offset: 2, encoding: bcd}
+      - {id: day, name: Day, byte_offset: 3, encoding: bcd}
+      - {id: month, name: Month, byte_offset: 4, encoding: bcd}
+      - {id: year, name: Year, byte_offset: 5, encoding: bcd}
+  - id: daily_timer
+    mem: eeprom
+    addr: 0x50
+    count: 10
+    name: Daily timer (two programs)
+    category: Clock & scheduling
+    status: reported
+    sources: [eni23]
+    evidence:
+      - {source: eni23, origin: external, method: source_table, supports: [address, meaning, encoding, layout], claim: "Source lists enable, two ten-minute start/stop pairs, power and target temperature. Slot 55 is unassigned; keep gaps."}
+    members:
+      - {id: enabled, name: Enabled, byte_offset: 0, values: {0: "off", 1: "on"}}
+      - {id: start_1, name: Program 1 start, byte_offset: 1, scale: 10, unit: min}
+      - {id: stop_1, name: Program 1 stop, byte_offset: 2, scale: 10, unit: min}
+      - {id: power_1, name: Program 1 power, byte_offset: 3}
+      - {id: target_1, name: Program 1 target temperature, byte_offset: 4}
+      - {id: start_2, name: Program 2 start, byte_offset: 6, scale: 10, unit: min}
+      - {id: stop_2, name: Program 2 stop, byte_offset: 7, scale: 10, unit: min}
+      - {id: power_2, name: Program 2 power, byte_offset: 8}
+      - {id: target_2, name: Program 2 target temperature, byte_offset: 9}

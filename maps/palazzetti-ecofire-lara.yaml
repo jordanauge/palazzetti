@@ -8,6 +8,11 @@
 profile: palazzetti-ecofire-lara
 title: Palazzetti Ecofire Lara
 sources:
+  service-menu: Owner service-menu notes, private palazzetti-ecofire-lara/settings/manu-sav.md; observation date and firmware unknown
+  esphome-representation: "ESPHome Micronova sensor implementations: https://github.com/esphome/esphome/blob/dev/esphome/components/micronova/sensor/__init__.py and https://esphome.io/components/micronova/ (reviewed 2026-10-11); other stoves, not Lara address evidence"
+  ridiculouslab: "Micronova protocol analysis: https://www.ridiculouslab.com/arguments/iot/stufa/micronova_en.php (reviewed 2026-10-11); RAM mapping only, not Lara or EEPROM evidence"
+  forum-representation: "Third-party parameter formulas: https://stufapellet.forumcommunity.net/?t=53061907 (historical table retained in private notes/2020-palazzetti-repo/NOTES); not Lara offsets or safe ranges"
+  eni23-representation: "L'Asolana Marina mapping: https://github.com/eni23/micronova-controller (README reviewed 2026-10-11); decimal live clock versus BCD stored clock and 10-minute schedule units are candidates only for Lara"
   connbox-2020: Connection Box disassembly notes (2020), private repo notes/2020-palazzetti-repo/COMMANDS; model branch not verified on Lara
   notes-2020: Manual observations (2020), private repo notes/2020-palazzetti-repo
   dump-2020: RAM capture 2020-02-10..12, private repo dumps/2020-02-10-ram
@@ -21,6 +26,9 @@ fields:
     name: Power state
     status: observed
     sources: [notes-2020, dump-2020]
+    evidence:
+      - {source: notes-2020, origin: own, method: panel_match, supports: [address, meaning], claim: "Owner notes associate F9 states with off, starting, working and stopping; no command semantics established."}
+      - {source: dump-2020, origin: own, method: variation, supports: [meaning], claim: "Four historical cycles follow the recorded state sequence. Accepted legacy callbacks are not newly checksum-validated wire evidence."}
     values:
       0x1A: "off"
       0x2B: ignition
@@ -47,6 +55,8 @@ fields:
     name: Phase step / sequencer position
     status: hypothesis
     sources: [notes-2020, dump-2020]
+    evidence:
+      - {source: dump-2020, origin: own, method: variation, supports: [meaning], claim: "Values correlate with the F9 phase; sequencer interpretation remains a hypothesis, not a command."}
     notes: 1 when off, 24–26 during ignition, 32–33 while working, 39/45/50 during final cleaning.
   - id: status
     category: State & phases
@@ -98,6 +108,10 @@ fields:
     unit: °C
     status: observed
     sources: [notes-2020, dump-2020, dump-2020-02-08]
+    evidence:
+      - {source: notes-2020, origin: own, method: panel_match, supports: [address, meaning], claim: "Owner temperature observations support RAM 42 as fumes temperature; no new instrument comparison performed."}
+      - {source: dump-2020, origin: own, method: variation, supports: [meaning, range], claim: "Historical evolution follows heating and cooling; recorded ranges are observations, not safe bounds or defaults."}
+      - {source: ridiculouslab, origin: external, method: source_table, supports: [encoding], claim: "Reports unit-scale flue temperature on another board at RAM 5A. Useful representation comparison only; 5A temperature is refuted on Lara."}
     notes: >-
       12–58 °C off, 68–133 °C working in the later capture. In the February 8 capture,
       25–124 (23 distinct values). RAM 0x4B tracks this value; sequential polling
@@ -118,6 +132,9 @@ fields:
     unit: °C
     status: hypothesis
     sources: [dump-2020, dump-2020-02-08]
+    evidence:
+      - {source: dump-2020, origin: own, method: variation, supports: [meaning], claim: "Slow 19–27 evolution is temperature-like; probe identity and conversion are not confirmed by a panel match."}
+      - {source: esphome-representation, origin: external, method: source_code, supports: [encoding], claim: "Other-board ambient temperature uses raw/2. Test this against paired Lara readings rather than importing address 01 or assuming unit scale."}
     notes: >-
       19–27 °C, slow, rises while the stove works. February 8 capture: 21–27,
       6 distinct values; this supports temperature-like evolution but does not identify the probe.
@@ -168,6 +185,10 @@ fields:
     scale: 10
     status: observed
     sources: [notes-2020, dump-2020]
+    evidence:
+      - {source: notes-2020, origin: own, method: panel_match, supports: [address, meaning], claim: "Owner notes identify RAM 37 extractor behavior, with zero after shutdown; the rpm conversion still needs paired panel readings."}
+      - {source: dump-2020, origin: own, method: variation, supports: [meaning], claim: "Zero off and changing values when running support extractor-related interpretation."}
+      - {source: esphome-representation, origin: external, method: source_description, supports: [encoding], claim: "Other-board rpm representation is raw times 10 plus a model-dependent offset. Lara offset is not established."}
     notes: 0 when off, 135–249 while running (same address as generic Micronova). RAM 0x39 tracks it.
   - id: fumes_fan_speed_mirror
     category: Combustion & fans
@@ -252,6 +273,8 @@ fields:
     name: Power setting P (secondary RAM copy)
     status: observed
     sources: [notes-2020]
+    evidence:
+      - {source: notes-2020, origin: own, method: panel_match, supports: [address, meaning], claim: "Notes explicitly label RAM 47 as setting P alongside 65; synchronization remains unverified."}
     notes: Historical panel observations identify this alongside RAM 0x65. Exact synchronization and encoding require a new targeted capture.
   - id: fan_setting_ram_aux
     category: User settings
@@ -260,6 +283,8 @@ fields:
     name: Ambient fan setting V (secondary RAM copy)
     status: observed
     sources: [notes-2020]
+    evidence:
+      - {source: notes-2020, origin: own, method: panel_match, supports: [address, meaning], claim: "Notes explicitly label RAM 46 as setting V alongside 66; no write evidence."}
     notes: Historical panel observations identify this alongside RAM 0x66. No independently verified write operation.
   - id: shutdown_countdown
     category: State & phases
@@ -327,6 +352,8 @@ fields:
     encoding: bcd
     status: observed
     sources: [notes-2020, dump-2020]
+    evidence:
+      - {source: notes-2020, origin: own, method: panel_match, supports: [address, meaning, encoding], claim: "Owner notes identify minutes at RAM 5E in BCD, independently of generic clock addresses."}
   - id: clock_hour
     category: Clock & scheduling
     mem: ram
@@ -335,6 +362,8 @@ fields:
     encoding: bcd
     status: observed
     sources: [notes-2020, dump-2020]
+    evidence:
+      - {source: notes-2020, origin: own, method: panel_match, supports: [address, meaning, encoding], claim: "Owner notes identify hours at RAM 5F in BCD; not a borrowed generic offset."}
   - id: clock_weekday
     category: Clock & scheduling
     mem: ram
@@ -342,6 +371,8 @@ fields:
     name: Clock, day of week
     status: observed
     sources: [notes-2020, dump-2020]
+    evidence:
+      - {source: dump-2020, origin: own, method: panel_match, supports: [address, meaning, encoding], claim: "Historical dates associate Monday with 1 and Tuesday with 2 at RAM 60; enum is independent of other-model weekday numbering."}
     values: {0: sunday, 1: monday, 2: tuesday, 3: wednesday, 4: thursday, 5: friday, 6: saturday}
     notes: Read 1 on Monday 2020-02-10 and 2 on Tuesday, as expected.
   - id: clock_hour_tens
@@ -384,6 +415,9 @@ fields:
     name: Constant block 43 20 10 60 20 80 159 145 145 145 145 11 5
     status: observed
     sources: [notes-2020]
+    evidence:
+      - {source: notes-2020, origin: own, method: static_value, supports: [address], claim: "Thirteen historical constant readings are recorded at 23–2F; constant does not mean default or identify the parameter."}
+      - {source: service-menu, origin: own, method: adjacency, supports: [meaning, layout], claim: "Recorded service values ST OFF SC=43, ST STEP SC=20, DASS MOD P=10, D CICLO FC=10, ST BLACKOUT=60, D ALL GEN=20, T ALL PELL=80 suggest testing 23–28 as an ordered group; a possible times-six encoding at 26 and duplicate small values make this unproven. No member assigned a setting name."}
     notes: Historical constant readings only; not defaults or a verified parameter structure. Individual meanings remain unknown.
     members:
       - {id: byte_00, name: Unidentified constant +0, byte_offset: 0, status: unknown, notes: "Historically 43 (0x2B)."}
@@ -407,6 +441,9 @@ fields:
     name: Board / model code candidate
     status: hypothesis
     sources: [dump-2020, connbox-2020]
+    evidence:
+      - {source: dump-2020, origin: own, method: static_value, supports: [address], claim: "RAM 0D is constant E8 in the historical capture; constancy alone does not identify a board."}
+      - {source: connbox-2020, origin: own, method: disassembly, supports: [meaning], claim: "Historical Connection Box notes read RAM 0D for model dispatch; the Lara model branch is not verified."}
     notes: Constant 232 (0xE8) in the Lara capture. Connection Box notes read this address to select a model branch; the Lara branch and board identity remain unverified.
   - id: transition_0x06
     category: State & phases
@@ -467,6 +504,10 @@ fields:
     access: rw
     status: hypothesis
     sources: [notes-2020]
+    evidence:
+      - {source: notes-2020, origin: own, method: panel_change, supports: [address], claim: "Notes record EEPROM 62 and 63 changing during program editing; which display value each byte represents is unresolved."}
+      - {source: notes-2020, origin: own, method: adjacency, supports: [layout], claim: "Listed program starts suggest triplets beginning at decimal 59. Notes contain gaps/typos and the tentative end overlaps power at decimal 76; not a validated structure."}
+      - {source: eni23-representation, origin: external, method: source_table, supports: [encoding], claim: "Another board stores schedule times in ten-minute units. Candidate representation only; Lara triplet times are not decoded."}
     notes: Triplet layout and start/stop byte encoding not decoded yet; EEPROM 62 went 0x43→0x42 and 63 went 0x54→0x57 while editing a program. Tentative region ends at 0x4C, overlapping the observed power setting; the six-triplet boundary is not established.
     members:
       - id: program_1
@@ -529,6 +570,8 @@ fields:
     access: rw
     status: observed
     sources: [notes-2020]
+    evidence:
+      - {source: notes-2020, origin: own, method: panel_match, supports: [address, meaning, encoding], claim: "Owner notes associate decimal EEPROM 61 with the displayed day-selection labels 0–9; not a generic seven-byte day mask."}
     values: {0: week, 1: mon-fri, 2: sat-sun, 3: monday, 4: tuesday, 5: wednesday, 6: thursday, 7: friday, 8: saturday, 9: sunday}
   - id: power_setting
     category: User settings
@@ -538,6 +581,8 @@ fields:
     access: rw
     status: observed
     sources: [notes-2020]
+    evidence:
+      - {source: notes-2020, origin: own, method: panel_match, supports: [address, meaning, encoding], claim: "Owner notes explicitly associate decimal EEPROM 76 with P=auto/1/2/3/4; no safe bus write was established."}
     values: {0: auto, 1: "1", 2: "2", 3: "3", 4: "4"}
   - id: fan_setting
     category: User settings
@@ -547,6 +592,8 @@ fields:
     access: rw
     status: observed
     sources: [notes-2020]
+    evidence:
+      - {source: notes-2020, origin: own, method: panel_match, supports: [address, meaning], claim: "Owner notes associate decimal EEPROM 77 with V. The full recorded enum needs renewed panel verification."}
     values: {0: auto, 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
   - id: target_temperature
     category: User settings
@@ -557,4 +604,73 @@ fields:
     access: rw
     status: observed
     sources: [notes-2020]
+    evidence:
+      - {source: notes-2020, origin: own, method: panel_change, supports: [address, meaning, encoding], claim: "Recorded display change 26 to 27 corresponds to decimal EEPROM 78 changing by one in plain degrees, not BCD; this is a physical-menu observation, not our serial write."}
     notes: Plain degrees, not BCD (26 → 27 when raised by one).
+
+# Labels are known, EEPROM locations are not. Actual readings remain in the private dossier.
+unlocated:
+  - id: service_d_a1
+    name: D A1
+    memory_hint: eeprom
+    category: Service parameters
+    notes: "Displayed service label; EEPROM storage is a search hypothesis, not established. Units and representation unresolved."
+    evidence: &service-label
+      - &service-reading {source: service-menu, origin: own, method: panel_match, supports: [meaning], claim: "Label and historical displayed reading exist in owner notes. No address, factory default, safe range or encoding is established."}
+  - {id: service_d_a2, name: D A2, memory_hint: eeprom, category: Service parameters, evidence: *service-label}
+  - {id: service_d_a3, name: D A3, memory_hint: eeprom, category: Service parameters, evidence: *service-label}
+  - id: service_g_a1
+    name: G A1
+    memory_hint: eeprom
+    category: Service parameters
+    encoding_candidates: ["raw times 10 plus model offset; otherwise multi-byte value"]
+    evidence: &fan-search
+      - *service-reading
+      - {source: forum-representation, origin: external, method: source_table, supports: [encoding], claim: "Another-board service extractor parameters use 10*raw+250. A search representation only; does not establish the Lara service label's encoding, bias or offset."}
+      - {source: esphome-representation, origin: external, method: source_description, supports: [encoding], claim: "Live extractor sensors use times ten plus configurable bias. Live-sensor conversion is not proof of stored service-setting representation."}
+  - {id: service_g_a2, name: G A2, memory_hint: eeprom, category: Service parameters, evidence: *fan-search, encoding_candidates: ["raw times 10 plus model offset; otherwise multi-byte value"]}
+  - {id: service_g_a3, name: G A3, memory_hint: eeprom, category: Service parameters, evidence: *fan-search, encoding_candidates: ["raw times 10 plus model offset; otherwise multi-byte value"]}
+  - {id: service_doff_coc_a1, name: DOFF COC A1, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["fixed-point seconds; tick count; multi-byte value"]}
+  - {id: service_doff_coc_a2, name: DOFF COC A2, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["fixed-point seconds; tick count; multi-byte value"]}
+  - {id: service_doff_coc_a3, name: DOFF COC A3, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["fixed-point seconds; tick count; multi-byte value"]}
+  - {id: service_d_resist, name: D RESiST, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["minutes; seconds; tick count"]}
+  - {id: service_d_on_dp_a, name: D ON DP A, memory_hint: eeprom, category: Service parameters, evidence: *service-label}
+  - {id: service_g_dp_a, name: G DP A, memory_hint: eeprom, category: Service parameters, evidence: *fan-search, encoding_candidates: ["raw times 10 plus model offset; otherwise multi-byte value"]}
+  - {id: service_st_a, name: ST A, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["unit-scale temperature; half-degree scale; biased value"]}
+  - {id: service_g_fumi_p1, name: G FUMI P1, memory_hint: eeprom, category: Service parameters, evidence: *fan-search, encoding_candidates: ["raw times 10 plus model offset; otherwise multi-byte value"]}
+  - {id: service_g_fumi_p2, name: G FUMI P2, memory_hint: eeprom, category: Service parameters, evidence: *fan-search, encoding_candidates: ["raw times 10 plus model offset; otherwise multi-byte value"]}
+  - {id: service_g_fumi_p3, name: G FUMI P3, memory_hint: eeprom, category: Service parameters, evidence: *fan-search, encoding_candidates: ["raw times 10 plus model offset; otherwise multi-byte value"]}
+  - {id: service_g_fumi_p4, name: G FUMI P4, memory_hint: eeprom, category: Service parameters, evidence: *fan-search, encoding_candidates: ["raw times 10 plus model offset; otherwise multi-byte value"]}
+  - {id: service_don_coc, name: DON COC, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["fixed-point seconds; tick count; multi-byte value"]}
+  - {id: service_fumi_percent, name: G.+/- %FUMI, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["signed integer; biased unsigned adjustment"]}
+  - {id: service_doff_coc_p1, name: DOFF COC P1, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["fixed-point seconds; tick count; multi-byte value"]}
+  - {id: service_doff_coc_p2, name: DOFF COC P2, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["fixed-point seconds; tick count; multi-byte value"]}
+  - {id: service_doff_coc_p3, name: DOFF COC P3, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["fixed-point seconds; tick count; multi-byte value"]}
+  - {id: service_doff_coc_p4, name: DOFF COC P4, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["fixed-point seconds; tick count; multi-byte value"]}
+  - {id: service_v_scamb_1, name: V.SCAMB.1, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["enumerated level; scaled fan output"]}
+  - {id: service_v_scamb_2, name: V.SCAMB.2, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["enumerated level; scaled fan output"]}
+  - {id: service_v_scamb_3, name: V.SCAMB.3, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["enumerated level; scaled fan output"]}
+  - {id: service_v_scamb_4, name: V.SCAMB.4, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["enumerated level; scaled fan output"]}
+  - {id: service_st_scamb_mx, name: ST.SCAMB.MX, memory_hint: eeprom, category: Service parameters, evidence: *service-label}
+  - {id: service_st_off_sc, name: ST. OFF. SC, memory_hint: eeprom, category: Service parameters, evidence: *service-label, notes: "Compare historical value and adjacency around RAM 23; this is not an EEPROM location."}
+  - {id: service_st_step_sc, name: ST. STEP SC, memory_hint: eeprom, category: Service parameters, evidence: *service-label, notes: "Compare historical value and adjacency around RAM 24; this is not an EEPROM location."}
+  - {id: service_dass_mod_p, name: DASS MOD P, memory_hint: eeprom, category: Service parameters, evidence: *service-label}
+  - {id: service_d_ciclo_fc, name: D CICLO FC, memory_hint: eeprom, category: Service parameters, evidence: *service-label, encoding_candidates: ["minutes; seconds; tick count"]}
+  - {id: service_st_blackout, name: ST.BLACKOUT, memory_hint: eeprom, category: Service parameters, evidence: *service-label}
+  - {id: service_d_all_gen, name: D.ALL. GEN, memory_hint: eeprom, category: Service parameters, evidence: *service-label}
+  - {id: service_t_all_pell, name: T.ALL.PELL., memory_hint: eeprom, category: Service parameters, evidence: *service-label}
+  - id: display_message
+    name: Display message / panel text
+    memory_hint: ram
+    category: State & phases
+    encoding_candidates: ["ASCII byte sequence; display codes"]
+    notes: "External RAM 8D–9C is not assigned to Lara. Need a paired panel-text capture."
+    evidence:
+      - {source: ridiculouslab, origin: external, method: source_table, supports: [meaning, encoding], claim: "Another board exposes display text in ASCII at RAM 8D–9C. This supplies a search representation, not Lara location or presence."}
+  - id: chrono_enable
+    name: Chrono enable state
+    memory_hint: eeprom
+    category: Clock & scheduling
+    notes: "Other models have enable bytes; no distinct Lara enable address established."
+    evidence:
+      - {source: eni23-representation, origin: external, method: source_table, supports: [meaning, encoding], claim: "Another-board daily timer has an enable byte 0/1. Search Lara without copying its offset."}

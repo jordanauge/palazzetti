@@ -125,6 +125,14 @@ def test_public_atlas_excludes_private_captures(tmp_path):
     assert payload(memory_html.render("eeprom", maps.profiles(), [sample]))["captures"] == []
 
 
+def test_unlocated_inventory_is_separate_from_addressed_regions():
+    p = payload(memory_html.render("eeprom", ["palazzetti-ecofire-lara"]))["profiles"][0]
+    assert len([f for f in p["unlocated"] if f["id"].startswith("service_")]) == 35
+    assert not {f["id"] for f in p["unlocated"]}.intersection(f["id"] for f in p["fields"])
+    assert all("addr" not in f for f in p["unlocated"])
+    assert next(f for f in p["fields"] if f["id"] == "target_temperature")["evidence"]
+
+
 def test_pages_workflow_packages_only_public_html():
     from pathlib import Path
 

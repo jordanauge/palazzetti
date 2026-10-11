@@ -52,9 +52,21 @@ Protocol notes and forums:
 
 - **ridiculouslab**, *Micronova protocol analysis*: <https://www.ridiculouslab.com/arguments/iot/stufa/micronova_en.php>.
   The protocol source credited by philibertc.
+  Directly reviewed 2026-10-11: RAM-only table and representation hints are recorded
+  in [its separate profile](../maps/micronova-ridiculouslab.yaml). It does not
+  establish Lara EEPROM locations. Its translated Modbus register numbers are not
+  stove serial addresses.
 - **StufaPellet forum** (IT), the thread where the protocol was first documented, with a PlatformIO project
   (copy in the private repo `thirdparty/`): <https://stufapellet.forumcommunity.net/?t=53061907>.
   The site is intermittently unavailable.
+
+Direct mapping review also covers [eni23's Marina profile](../maps/micronova-marina.yaml):
+different clock layouts, BCD-like EEPROM examples and ten-minute schedule units.
+Water scales and P+/P− labels conflict across these sources; the atlas preserves
+separate profiles instead of resolving them by assumption. ESPHome's current sensor
+code supports configurable addresses and raw scaling, not Lara-specific applicability.
+Remaining linked projects/manuals are a reference backlog, **not** a claim that all
+their addresses, revisions and parameters have been extracted or verified.
 
 Not reviewed yet: [raziel83257/micronovaEsphome](https://github.com/raziel83257/micronovaEsphome),
 [ArthurG94/Stove](https://github.com/ArthurG94/Stove),

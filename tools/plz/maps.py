@@ -17,6 +17,27 @@ STATUS_HELP = {
     "unknown": "address of interest, meaning not understood",
     "refuted": "generic meaning checked and wrong for this stove",
 }
+EVIDENCE_METHODS = (
+    "source_table", "source_code", "source_description", "disassembly",
+    "variation", "panel_match", "panel_change", "static_value",
+    "default_match", "range_match", "adjacency",
+)
+EVIDENCE_ASPECTS = ("address", "meaning", "encoding", "layout", "range", "default", "applicability")
+
+
+def _validate_evidence(field: dict, sources: dict) -> None:
+    records = field.get("evidence", [])
+    if not isinstance(records, list):
+        raise ValueError(f"Evidence must be a list for {field['id']}")
+    for record in records:
+        if (not isinstance(record, dict) or record.get("source") not in sources or record.get("origin") not in ("own", "external")
+                or record.get("method") not in EVIDENCE_METHODS
+                or not record.get("supports") or not isinstance(record["supports"], list)
+                or any(aspect not in EVIDENCE_ASPECTS for aspect in record["supports"])
+                or not isinstance(record.get("claim"), str) or not record["claim"].strip()):
+            raise ValueError(f"Invalid evidence for {field['id']}: {record}")
+    for child in field.get("members", []):
+        _validate_evidence(child, sources)
 
 
 def _path(name: str) -> Path:
@@ -61,9 +82,25 @@ def load(name: str) -> dict:
         fields = {f["id"]: f for f in base["fields"]}
         sources = dict(base["sources"])
     for f in raw.get("fields", []):
-        fields[f["id"]] = _norm({**fields.get(f["id"], {}), **f})
+        inherited = dict(fields.get(f["id"], {}))
+        if "evidence" not in f and any(key in f and f[key] != inherited.get(key)
+                                      for key in ("addr", "mem", "scale", "offset", "encoding", "sources")):
+            inherited.pop("evidence", None)
+        fields[f["id"]] = _norm({**inherited, **f})
     sources.update(raw.get("sources", {}))
-    return {**raw, "fields": list(fields.values()), "sources": sources}
+    for f in fields.values():
+        _validate_evidence(f, sources)
+    unlocated = raw.get("unlocated", [])
+    if not isinstance(unlocated, list):
+        raise ValueError("unlocated must be a list")
+    ids = set(fields)
+    for f in unlocated:
+        if (not isinstance(f, dict) or not isinstance(f.get("id"), str) or f["id"] in ids or "addr" in f
+                or not f.get("name") or f.get("memory_hint") not in (RAM, EEPROM, "unknown")):
+            raise ValueError(f"Invalid unlocated parameter: {f}")
+        ids.add(f["id"])
+        _validate_evidence(f, sources)
+    return {**raw, "fields": list(fields.values()), "sources": sources, "unlocated": unlocated}
 
 
 def profiles() -> list[str]:
@@ -151,6 +188,28 @@ def render_markdown(names: list[str]) -> str:
                     f.get("access", "r"), f["status"], f["write_status"],
                     ", ".join(f.get("sources", [])), f.get("notes"))) + " |")
             out.append("")
+        out += ["### Claim-specific evidence", "",
+                "Source credit distinguishes address, representation and interpretation. "
+                "A third-party address is not evidence of Lara applicability. Legacy sources without "
+                "structured claims remain unclassified.", ""]
+
+        def evidence_rows(field, path=""):
+            identity = path + field["id"]
+            for record in field.get("evidence", []):
+                yield f"- `{identity}`: **{record['origin']} / {record['method']}**; supports " \
+                      f"{', '.join(record['supports'])}; `{record['source']}` — {record['claim']}"
+            for child in field.get("members", []):
+                yield from evidence_rows(child, identity + ".")
+
+        for f in p["fields"] + p.get("unlocated", []):
+            out.extend(evidence_rows(f))
+        if p.get("unlocated"):
+            out += ["", "### Unlocated parameters", "",
+                    "Inventory only: no address, no generated entity, no assumed storage or encoding.", "",
+                    "| Parameter | Memory to investigate | Category | Notes |", "|---|---|---|---|"]
+            for f in p["unlocated"]:
+                out.append("| " + " | ".join(_cell(v) for v in (
+                    f["name"], f["memory_hint"], f.get("category"), f.get("notes"))) + " |")
         out += ["Sources:", ""] + [f"- `{k}`: {v}" for k, v in p["sources"].items()]
     return "\n".join(out).rstrip() + "\n"
 

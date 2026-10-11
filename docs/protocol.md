@@ -93,7 +93,7 @@ compares profiles side by side. Known differences:
 | Room temperature | RAM 0x01 | RAM 0x49 (hypothesis); RAM 0x01 refuted |
 | Fumes temperature | RAM 0x5A | RAM 0x42 / 0x4B; RAM 0x5A is a flag byte (63 off, 255 running) |
 | Power level | RAM 0x34 | RAM 0x3F (observed); RAM 0x34 refuted |
-| Settings | EEPROM 0x00–0x7F (PG/PF/P1 parameters, chrono) | layout from the forum table, partially checked |
+| Settings | Model-specific PG/PF/user/chrono layouts | observed user bytes 0x4C/0x4D/0x4E; service EEPROM offsets unknown; chrono triplets tentative |
 
 Some boards (e.g. Micronova P937 variants) use a different water temperature address or BCD-encoded clock
 registers; the component's `encoding:` option (`uint8`, `int8`, `bcd`, `uint16_be/le`, `int16_be/le`) covers these.
@@ -123,5 +123,14 @@ see [boards.md](boards.md).
 - ridiculouslab, *Micronova protocol analysis*: <https://www.ridiculouslab.com/arguments/iot/stufa/micronova_en.php>
 
 Other implementations, adapters and manuals are listed in [references.md](references.md).
+
+The two directly reviewed reference tables have separate profiles:
+[ridiculouslab](../maps/micronova-ridiculouslab.yaml) and
+[eni23's L'Asolana Marina](../maps/micronova-marina.yaml). They disagree on some
+representations and command labels. Ridiculouslab explicitly did not investigate EEPROM;
+its Modbus register numbers are translated addresses, not stove EEPROM offsets.
+These references supply **testable representation hypotheses**, not Lara address proof.
+The [provenance rules](reverse-engineering.md#8-promoting-knowledge) distinguish
+mapping, encoding, layout and interpretation claims.
 
 [← README](../README.md) · [memory map →](memory-map.md)

@@ -59,6 +59,11 @@ The adapter must provide non-inverted 3.3 V-compatible UART signals; its as-buil
 
 ### HAT insertion direction is not established
 
+The retained original Arduino firmware explicitly calls
+`Serial.swap(); // RX = D7, TX=D8` after configuring 1200 baud 8N2.
+The ESPHome D7/D8 assignments therefore preserve the original implementation,
+not a new proposed rewiring.
+
 GPIO assignments describe **signals**, not the physical orientation of a custom
 socket. Do not infer direction from the green wire, USB end, diode position or
 another adapter's diagram. The owner's saved diode/resistor/NPN drawing differs

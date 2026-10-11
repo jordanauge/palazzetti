@@ -145,9 +145,10 @@ PLZ_HOST=127.0.0.1 uv run plz dump ram:0-0xFF
   [map schema](../maps/README.md#claim-specific-provenance). Credit a reference separately
   for a reported address, encoding, layout or insight. Do not make a representation
   hint into Lara address evidence;
-- [micronova-common.yaml](../maps/micronova-common.yaml) lists the community-consensus Micronova layout. A profile
-  can `extends` another profile: its fields are merged by `id`, and the child's keys win. This is how the same
-  parameter can live at a different address on another stove. See [maps/README.md](../maps/README.md).
+- [Reference extractions](reference-mappings/README.md) retain other-board layouts and
+  software findings outside `maps/`. They are not maintained or selectable stove maps.
+  Promote only Lara-specific address evidence to its map; credit representation hints
+  separately. See [maps/README.md](../maps/README.md).
 
 `make gen` regenerates [memory-map.md](memory-map.md) and the ESPHome entity packages. Hypotheses are generated
 disabled by default.

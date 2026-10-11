@@ -1,3 +1,5 @@
+# Reference extraction only; not a maintained or deployable Lara map.
+reference_only: true
 profile: micronova-ridiculouslab
 title: Micronova (ridiculouslab reference board, not Lara)
 sources:

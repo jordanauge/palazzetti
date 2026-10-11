@@ -6,7 +6,8 @@ with an ESP8266 on the stove's serial port.
 **Memory atlas:** [GitHub Pages](https://jordanauge.github.io/palazzetti/) ·
 [RAM map](https://jordanauge.github.io/palazzetti/memory-ram.html) ·
 [EEPROM map](https://jordanauge.github.io/palazzetti/memory-eeprom.html).
-The atlas is generated from the public map profiles, without private captures.
+The atlas covers **Ecofire Lara only**, without private captures. Other-board
+extractions stay in [reference notes](docs/reference-mappings/README.md), not the maintained map.
 
 > **Board compatibility.** Palazzetti stoves have one of two controller board families. This repository implements
 > the **Micronova** protocol (1200 baud, single wire), which is what the Ecofire Lara speaks. Newer Palazzetti
@@ -28,7 +29,7 @@ The atlas is generated from the public map profiles, without private captures.
 |---|---|
 | [components/palazzetti](components/palazzetti) | ESPHome external component (hub, entities, `palazzetti.write`, lab server) |
 | [example/](example) | ready configurations; `*.entities.yaml` are generated from the maps |
-| [maps/](maps) | **memory maps** (YAML, source of truth): generic Micronova layouts and stove profiles |
+| [maps/](maps) | **Ecofire Lara memory map** (YAML, source of truth); other-board facts stay in [reference notes](docs/reference-mappings/README.md) |
 | [tools/plz](tools/plz) | reverse-engineering lab CLI: dump, watch, mark, diff, analyze, emulate, generate |
 | [docs/](docs) | documentation (below) |
 | [tests/](tests) | Python tests, host C++ codec test, ESPHome compile test |
@@ -41,8 +42,8 @@ The atlas is generated from the public map profiles, without private captures.
 | [hardware.md](docs/hardware.md) | ESP8266 board, pinout, stove connector, wiring, assembly |
 | [adapter.md](docs/adapter.md) | owner's diode/10 kΩ/NPN adapter versus MOSFET reference; UART swap and TX-only debug |
 | [protocol.md](docs/protocol.md) | Micronova serial protocol: RAM/EEPROM read/write frames, checksum, timing, stove variants |
-| [memory-map.md](docs/memory-map.md) | generated RAM/EEPROM map: common vs stove-specific addresses, status of each entry |
-| [RAM hex map](docs/memory-ram.html) / [EEPROM hex map](docs/memory-eeprom.html) | offline interactive bytes, regions and struct members; profile selection, hover details and historical value evolution |
+| [memory-map.md](docs/memory-map.md) | generated Lara RAM/EEPROM map, status and provenance of each entry |
+| [RAM hex map](docs/memory-ram.html) / [EEPROM hex map](docs/memory-eeprom.html) | Lara-only offline interactive bytes, regions and struct members; hover details and historical value evolution |
 | [esphome.md](docs/esphome.md) | component architecture, build, configuration reference |
 | [reverse-engineering.md](docs/reverse-engineering.md) | `plz` workflow for people and agents, analysis, safety, emulator |
 | [acquisition.md](docs/acquisition.md) | repeated checked backups, editable autonomous polling plans and live evidence recording |
@@ -108,7 +109,7 @@ It is strictly read-only and reports unavailable/failed/stale values explicitly.
 ## Published memory atlas
 
 [GitHub Pages memory atlas](https://jordanauge.github.io/palazzetti/) contains the RAM and EEPROM
-hex maps, generated from the YAML profiles **without private capture data**. The
+hex maps for **Ecofire Lara only**, generated from its YAML map **without private capture data**. The
 `Publish memory maps` GitHub Actions workflow tests and packages the atlas on changes to
 the maps/docs and supports manual runs. It deploys when this repository is public.
 

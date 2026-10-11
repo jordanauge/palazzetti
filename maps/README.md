@@ -1,22 +1,18 @@
 # Memory maps
 
-One YAML file per profile: a controller family (`micronova-*`) or a stove model (`palazzetti-*`). They are the
-single source of truth. [docs/memory-map.md](../docs/memory-map.md),
+The only maintained map is **Palazzetti Ecofire Lara**, the stove we can test.
+[palazzetti-ecofire-lara.yaml](palazzetti-ecofire-lara.yaml) is the
+single source of truth for its addressed fields and unlocated investigation targets. [docs/memory-map.md](../docs/memory-map.md),
 [RAM hex map](../docs/memory-ram.html), [EEPROM hex map](../docs/memory-eeprom.html) and the ESPHome entity packages in
 [example/](../example) are generated from them with `make gen`.
 
-All profiles describe boards that speak the **Micronova** protocol (13-bit addressing; most documented fields are in the first 256 bytes). Fumis boards use
-a different address space and have no map here; see [boards.md](../docs/boards.md).
-
-| Profile | Content |
-|---|---|
-| [micronova-common.yaml](micronova-common.yaml) | community-consensus Micronova RAM/EEPROM layout (ESPHome `micronova`, StufaPellet) |
-| [micronova-forum.yaml](micronova-forum.yaml) | community table of one Micronova board: EEPROM parameter blocks, chrono |
-| [micronova-p937.yaml](micronova-p937.yaml) | P937 board variant (community JavaScript controller), `extends` micronova-common |
-| [micronova-ridiculouslab.yaml](micronova-ridiculouslab.yaml) | directly reviewed ridiculouslab RAM table, with scaling differences and source conflicts retained |
-| [micronova-marina.yaml](micronova-marina.yaml) | directly reviewed eni23 L'Asolana Marina RAM/EEPROM table, including decimal/BCD clock distinction |
-| [palazzetti-connbox.yaml](palazzetti-connbox.yaml) | addresses used by the Connection Box firmware (2020 disassembly notes), per model branch |
-| [palazzetti-ecofire-lara.yaml](palazzetti-ecofire-lara.yaml) | Ecofire Lara, from 2020 notes and a 47 h RAM capture |
+Lara uses the **Micronova** protocol (13-bit addressing; most documented fields are
+in the first 256 bytes). Other boards and software are
+[reference extractions](../docs/reference-mappings/README.md) only. They are not
+discovered as maintained profiles, selectable in the atlas, or accepted by firmware
+and atlas generators. Their encodings and structures may inform Lara investigations;
+their addresses do not establish Lara applicability. Fumis is out of scope;
+see [boards.md](../docs/boards.md).
 
 ## Profile keys
 
@@ -33,7 +29,7 @@ a different address space and have no map here; see [boards.md](../docs/boards.m
 
 | Key | Default | Meaning |
 |---|---|---|
-| `id` | required | stable identifier, the same across profiles for the same parameter (this is what makes "same parameter, different address" comparable) |
+| `id` | required | stable identifier for the parameter |
 | `mem` | `ram` | `ram` or `eeprom` |
 | `addr` | required | address (0x0000–0x1FFF) |
 | `count` | 1 | number of consecutive bytes for a block (documented only, no entity generated) |
@@ -96,7 +92,7 @@ never insert guessed addresses. Runtime RAM and EEPROM permission gates still ap
 ## Interactive maps and historical captures
 
 Open the two HTML pages directly in a browser; they need no server, network or external assets.
-Select the board profile before interpreting a byte. The three panels are a searchable field
+The atlas displays Lara only; there is no board selector. The three panels are a searchable field
 catalogue (A–Z or categories), the byte grid, and click-only details. Hover/focus highlights a
 region across the list and grid without replacing details. Click or Enter selects it:
 white outlines show selection, gold insets show hover, including when they overlap.
@@ -112,9 +108,9 @@ selector can return to address layout while retaining the selected capture.
 The Lara map includes the secondary P/V RAM copies at `47`/`46`, the model-code
 candidate at `0D`, historical constant-block members and additional addresses of interest.
 Unknown meanings remain unknown; historical constants are not factory defaults.
-The forum variant now exposes PG00–PG15, PF00–PF20, P100–P102 and individual schedule
-members from its source table. Those **reported** addresses and formulas are not Lara
-settings. Unassigned slots are not given invented member meanings.
+The forum reference extraction retains PG00–PG15, PF00–PF20, P100–P102 and schedule
+members from its source table, outside the atlas. Those **reported** addresses and
+formulas are not Lara settings. Unassigned slots are not given invented member meanings.
 
 `make gen` regenerates both public pages from YAML only, without private captures.
 Historical logs are in the private reverse-engineering repository. For a local private atlas:

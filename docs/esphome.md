@@ -111,8 +111,9 @@ The example is split in three packages:
   network time, permission switches, encrypted native-API read action and uploaded-map dashboard.
   Remove this package to omit both dashboards.
 
-[palazzetti-ecofire-lara.yaml](../example/palazzetti-ecofire-lara.yaml) includes all three. For another stove, add a
-profile in `maps/` and generate its package.
+[palazzetti-ecofire-lara.yaml](../example/palazzetti-ecofire-lara.yaml) includes all three.
+Lara is the only maintained stove map. Other-board extractions are
+[reference notes](reference-mappings/README.md), not firmware packages.
 
 ### 3.1 Hub
 

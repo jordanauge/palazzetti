@@ -80,6 +80,8 @@ def load(name: str) -> dict:
     fields: dict[str, dict] = {}
     sources: dict[str, str] = {}
     if parent := raw.get("extends"):
+        if Path(parent).suffix and not Path(parent).is_absolute():
+            parent = str(_path(name).parent / parent)
         base = load(parent)
         fields = {f["id"]: f for f in base["fields"]}
         sources = dict(base["sources"])
@@ -107,6 +109,13 @@ def load(name: str) -> dict:
 
 def profiles() -> list[str]:
     return sorted(p.stem for p in MAPS_DIR.glob("*.yaml"))
+
+
+def load_stove(name: str) -> dict:
+    profile = load(name)
+    if profile.get("reference_only"):
+        raise ValueError(f"{name} is reference-only, not a maintained stove map")
+    return profile
 
 
 def by_key(profile: dict) -> dict[tuple[str, int], dict]:
@@ -142,7 +151,7 @@ def _cell(s) -> str:
 
 
 def render_markdown(names: list[str]) -> str:
-    profs = [load(n) for n in names]
+    profs = [load_stove(n) for n in names]
     out = [
         "# Memory map",
         "",
@@ -155,24 +164,8 @@ def render_markdown(names: list[str]) -> str:
         "",
     ]
     out += [f"- **{s}**: {h}" for s, h in STATUS_HELP.items()]
-    out += ["", "## Same parameter, different address", "",
-            "Where each profile places a parameter (`—` absent, ~~struck~~ refuted).", ""]
-    ids = []
-    for p in profs:
-        ids += [f["id"] for f in p["fields"] if f["id"] not in ids]
-    out.append("| Parameter | " + " | ".join(p["profile"] for p in profs) + " |")
-    out.append("|---" * (len(profs) + 1) + "|")
-    for i in ids:
-        cells = []
-        for p in profs:
-            f = next((f for f in p["fields"] if f["id"] == i), None)
-            if f is None:
-                cells.append("—")
-            else:
-                a = f"{f['mem']} {_addr(f)}"
-                cells.append(f"~~{a}~~" if f["status"] == "refuted" else a)
-        if sum(c != "—" for c in cells) > 1:
-            out.append(f"| {i} | " + " | ".join(cells) + " |")
+    out += ["", "The maintained map covers Ecofire Lara only. Other-board extractions are "
+            "[reference material](reference-mappings/README.md), not Lara address evidence.", ""]
 
     for p in profs:
         out += ["", f"## {p.get('title', p['profile'])}", "", f"Profile `{p['profile']}`"
@@ -226,7 +219,7 @@ def gen_device_map(name: str, field_ids: list[str] | None = None, interval_ms: i
 
     if type(interval_ms) is not int or not 100 <= interval_ms <= 86400000:
         raise ValueError("interval_ms must be 100..86400000")
-    profile = load(name)
+    profile = load_stove(name)
     fields = []
 
     def leaves(field, prefix=""):
@@ -276,7 +269,7 @@ def gen_device_map(name: str, field_ids: list[str] | None = None, interval_ms: i
 
 def gen_esphome(name: str, statuses=("confirmed", "observed", "hypothesis"), hub: str = "stove") -> str:
     """ESPHome package with one entity per field. Hypotheses are created disabled by default."""
-    p = load(name)
+    p = load_stove(name)
     blocks: dict[str, list[str]] = {"sensor": [], "text_sensor": [], "number": []}
     names = Counter(f["name"] for f in p["fields"])
     fields = list(p["fields"])

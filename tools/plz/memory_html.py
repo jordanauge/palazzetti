@@ -118,11 +118,11 @@ def region(field: dict, base: int = 0, inherited: dict | None = None) -> dict:
 def render(memory: str, names: list[str], captures: list[dict] | None = None) -> str:
     if memory not in (RAM, EEPROM):
         raise ValueError(f"Unknown memory: {memory}")
-    if not names:
-        raise ValueError("At least one profile is required")
+    if len(names) != 1:
+        raise ValueError("The atlas requires exactly one stove map; other boards belong in reference notes")
     profiles = []
     for name in names:
-        profile = maps.load(name)
+        profile = maps.load_stove(name)
         profiles.append({
             "id": profile["profile"], "title": profile["title"], "sources": profile["sources"],
             "fields": [region(field) for field in profile["fields"] if field["mem"] == memory],

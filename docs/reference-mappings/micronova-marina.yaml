@@ -1,3 +1,5 @@
+# Reference extraction only; not a maintained or deployable Lara map.
+reference_only: true
 profile: micronova-marina
 title: Micronova (L'Asolana Marina, eni23 reference)
 sources:

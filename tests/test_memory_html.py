@@ -1,5 +1,6 @@
 import json
 import re
+from pathlib import Path
 
 import pytest
 
@@ -11,13 +12,23 @@ def payload(page):
                                 page, re.S).group(1))
 
 
-def test_render_all_profiles_and_overlapping_fields():
+def test_render_lara_only_and_overlapping_fields():
     for memory in ("ram", "eeprom"):
         result = payload(memory_html.render(memory, maps.profiles()))
         assert result["memory"] == memory
-        assert len(result["profiles"]) == len(maps.profiles())
+        assert [p["id"] for p in result["profiles"]] == ["palazzetti-ecofire-lara"]
+        assert 'id="profile"' not in memory_html.render(memory, maps.profiles())
     lara = payload(memory_html.render("ram", ["palazzetti-ecofire-lara"]))["profiles"][0]
     assert len([f for f in lara["fields"] if f["addr"] == 0x5A]) == 2
+
+
+def test_atlas_rejects_multiple_maps_and_reference_notes():
+    with pytest.raises(ValueError, match="exactly one"):
+        memory_html.render("ram", maps.profiles() * 2)
+    references = Path(__file__).resolve().parents[1] / "docs/reference-mappings"
+    for path in references.glob("*.yaml"):
+        with pytest.raises(ValueError, match="reference-only"):
+            memory_html.render("ram", [str(path)])
 
 
 def test_nested_members_and_distinct_conversion_offset():
@@ -93,14 +104,16 @@ def test_generate_both_files(tmp_path):
 
 
 def test_recovered_members_keep_addresses_conversions_and_evidence():
-    forum = payload(memory_html.render("eeprom", ["micronova-forum"]))["profiles"][0]
-    technical = next(f for f in forum["fields"] if f["id"] == "technical_parameters")
+    forum = maps.load(str(Path(__file__).resolve().parents[1] /
+                          "docs/reference-mappings/micronova-forum.yaml"))
+    fields = [memory_html.region(f) for f in forum["fields"] if f["mem"] == "eeprom"]
+    technical = next(f for f in fields if f["id"] == "technical_parameters")
     assert len(technical["members"]) == 37
     assert 16 not in {f["addr"] for f in technical["members"]}
     pg05 = next(f for f in technical["members"] if f["id"] == "pg05")
     assert (pg05["addr"], pg05["scale"], pg05["offset"], pg05["status"]) == (5, 10, 250, "reported")
     assert pg05["category"] == "Service parameters"
-    chrono = next(f for f in forum["fields"] if f["id"] == "chrono")
+    chrono = next(f for f in fields if f["id"] == "chrono")
     programs = [f for f in chrono["members"] if f["members"]]
     assert [p["addr"] for p in programs] == [77, 87, 97, 107]
     assert programs[-1]["members"][-1]["addr"] == 115
@@ -146,5 +159,7 @@ def test_pages_workflow_packages_only_public_html():
     build = workflow["jobs"]["build"]["steps"]
     generate = next(step["run"] for step in build if step.get("name") == "Generate public atlas without private captures")
     assert "--capture" not in generate and "--legacy-dir" not in generate
+    assert "gen-html palazzetti-ecofire-lara -o docs" in generate
+    assert "micronova-" not in generate and "palazzetti-connbox" not in generate
     assert "cp docs/index.html docs/memory-ram.html docs/memory-eeprom.html _site/" in generate
     assert "cp -r" not in generate

@@ -38,15 +38,14 @@ button:focus-visible{outline:2px dashed #ffcf66;outline-offset:3px}.dim{opacity:
 <nav><a href="https://github.com/jordanauge/palazzetti">Repository</a> · <a href="https://github.com/jordanauge/palazzetti/blob/main/docs/memory-map.md">Map documentation</a> ·
 <a href="memory-ram.html">RAM</a> · <a href="memory-eeprom.html">EEPROM</a></nav>
 <h1>__TITLE__</h1>
-<p>Read-only Micronova memory atlas. Browse fields alphabetically or by category. Hover or focus previews a region;
+<p>Read-only Ecofire Lara memory atlas. Browse fields alphabetically or by category. Hover or focus previews a region;
 only clicking a field or byte (or pressing Enter) populates details. White outline: selected. Gold inset: hovered.
 Escape clears selection. Multi-byte regions and their members are linked across all three panels.</p>
 <p class="muted">Layout cells show address offsets, not memory values. Category backgrounds identify mapped regions;
 bottom borders show evidence certainty. Unmapped cells are muted. In capture-value mode, a dot means no valid
 observation, never zero. Values are each address's last valid read, not a simultaneous snapshot.
-Generic profiles are not Lara maps.</p>
+Other-board mappings are retained only as reference notes, not selectable stove maps.</p>
 <div class="controls">
-<label>Board profile<select id="profile"></select></label>
 <label>Capture<select id="capture"></select></label>
 <label>Cell content<select id="cell-mode"><option value="address">Address offsets (layout)</option><option value="value">Captured hex values</option></select></label>
 <label>Find field / address<input id="search" placeholder="temperature, chrono, 0xF9"></label>
@@ -257,7 +256,7 @@ function tooltip(event,addr){
   preview({addr,field:null});
 }
 function rebuild(){
-  profile=data.profiles[Number(el("profile").value)];regions=flatten(profile.fields);
+  profile=data.profiles[0];regions=flatten(profile.fields);
   const selected=el("capture").value;
   capture=selected===""?null:data.captures[Number(selected)];
   if(capture&&capture.profile!==profile.id)throw new Error("Capture/profile mismatch");
@@ -309,7 +308,7 @@ function rebuild(){
 function chooseProfile(){
   el("capture").replaceChildren();
   const none=text("option","No capture (layout only)",el("capture"));none.value="";
-  data.captures.forEach((c,i)=>{if(c.profile===data.profiles[Number(el("profile").value)].id&&
+  data.captures.forEach((c,i)=>{if(c.profile===data.profiles[0].id&&
     Object.keys(c.bytes).some(k=>k.startsWith(data.memory+":"))){
     const option=text("option",c.name,el("capture"));option.value=i;
   }});
@@ -320,11 +319,9 @@ function chooseProfile(){
 }
 function guarded(fn){return (...args)=>{try{el("error").hidden=true;fn(...args);}
   catch(e){el("error").textContent=e.message;el("error").hidden=false;console.error(e);}};}
-data.profiles.forEach((p,i)=>{const option=text("option",p.title,el("profile"));option.value=i;});
 for(const [status,help] of Object.entries(data.statuses)){
   const span=text("span",status,el("legend"),status);span.title=help;
 }
-el("profile").addEventListener("change",guarded(chooseProfile));
 el("capture").addEventListener("change",guarded(()=>{
   el("cell-mode").value=el("capture").value===""?"address":"value";
   el("cell-mode").options[1].disabled=el("capture").value==="";rebuild();

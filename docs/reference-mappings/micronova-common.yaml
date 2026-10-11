@@ -1,8 +1,10 @@
+# Reference extraction only; not a maintained or deployable Lara map.
 # Generic Micronova controller layout, as used by the ESPHome built-in `micronova`
 # component defaults and most community projects. Many Palazzetti boards are NOT laid
 # out like this (see palazzetti-ecofire-lara.yaml): treat every entry as "reported".
 #
 # Field keys: see maps/README.md.
+reference_only: true
 profile: micronova-common
 title: Micronova (generic, community consensus)
 sources:

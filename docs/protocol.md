@@ -84,7 +84,7 @@ retried; `plz info` (or `info` on the lab server) exposes the counters. Keep pol
 
 The frame format is common to all Micronova boards seen so far; **the memory layout is not**. The same parameter
 can live at a different address, have a different scale, or not exist at all. [memory-map.md](memory-map.md)
-compares profiles side by side. Known differences:
+documents Lara only; other-board layouts stay in [reference notes](reference-mappings/README.md). Known differences:
 
 | Aspect | Generic Micronova (ESPHome `micronova`, StufaPellet) | Palazzetti Ecofire Lara |
 |---|---|---|
@@ -100,7 +100,7 @@ registers; the component's `encoding:` option (`uint8`, `int8`, `bcd`, `uint16_b
 
 The Palazzetti Connection Box firmware handles this explicitly: it first reads a **board/model code at RAM 0x0D**,
 then uses one of several address sets (e.g. target temperature at RAM 0x36 or 0xA0, power at 0x37/0x64 or
-0x97/0x34). See [connection-box.md](connection-box.md) and the `palazzetti-connbox` profile. On the Lara, RAM 0x0D
+0x97/0x34). See [connection-box.md](connection-box.md) and the [Connection Box extraction](reference-mappings/palazzetti-connbox.yaml). On the Lara, RAM 0x0D
 is constant 232.
 
 Newer Palazzetti stoves (and Jotul, Godin, TurboFonte…) use a **Fumis** board instead: 38400 baud, 11-byte
@@ -124,9 +124,9 @@ see [boards.md](boards.md).
 
 Other implementations, adapters and manuals are listed in [references.md](references.md).
 
-The two directly reviewed reference tables have separate profiles:
-[ridiculouslab](../maps/micronova-ridiculouslab.yaml) and
-[eni23's L'Asolana Marina](../maps/micronova-marina.yaml). They disagree on some
+The two directly reviewed reference tables are retained outside the maintained map:
+[ridiculouslab](reference-mappings/micronova-ridiculouslab.yaml) and
+[eni23's L'Asolana Marina](reference-mappings/micronova-marina.yaml). They disagree on some
 representations and command labels. Ridiculouslab explicitly did not investigate EEPROM;
 its Modbus register numbers are translated addresses, not stove EEPROM offsets.
 These references supply **testable representation hypotheses**, not Lara address proof.

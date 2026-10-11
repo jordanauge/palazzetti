@@ -61,7 +61,7 @@ A first pass on the box firmware in 2020 (IDA) found that:
   0x37/0x64 or 0x97/0x34;
 - `SET STAT` writes RAM 0x21, and `GET PARM` reads the EEPROM from 0x28.
 
-They are recorded as `reported` in [maps/palazzetti-connbox.yaml](../maps/palazzetti-connbox.yaml). On the Lara,
+They are recorded as `reported` in [the reference extraction](reference-mappings/palazzetti-connbox.yaml), not the maintained map. On the Lara,
 RAM 0x0D is constant 232 and RAM 0x21 is constant 5. So the Lara is probably on another branch of these tables:
 finding the branch for code 232 is the next step.
 
@@ -69,8 +69,8 @@ finding the branch for code 232 is the next step.
 
 | Question | Where it helps |
 |---|---|
-| Address and scale of every `GET ALLS`/`GET STDT` field, per stove family | fills [maps/](../maps) with `confirmed` entries |
-| How the box identifies the stove (model / firmware registers) | selects the right profile automatically |
+| Address and scale of every `GET ALLS`/`GET STDT` field, per stove family | reference hypotheses; promote only Lara-applicable evidence to [its map](../maps/palazzetti-ecofire-lara.yaml) |
+| How the box identifies the stove (model / firmware registers) | identifies which software branch may apply to Lara |
 | Exact frames used for `CMD ON/OFF`, `SET POWR`, `SET SETP`, chrono | safe write paths for the [ESPHome component](esphome.md) |
 | Serial timing, retries, echo handling | validates the [protocol](protocol.md) notes |
 | Names, ranges and order of the technical parameters (the service-menu tables) | names for EEPROM blocks |

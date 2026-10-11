@@ -1,8 +1,15 @@
 import yaml
 import json
 import pytest
+from pathlib import Path
 
 from plz import maps
+
+REFERENCES = Path(__file__).resolve().parents[1] / "docs/reference-mappings"
+
+
+def reference(name):
+    return maps.load(str(REFERENCES / f"{name}.yaml"))
 
 
 def test_device_map_is_bounded_and_read_only():
@@ -54,7 +61,7 @@ def test_device_map_refuses_invalid_conversions(monkeypatch, override):
 
 def test_all_profiles_load():
     names = maps.profiles()
-    assert "palazzetti-ecofire-lara" in names
+    assert names == ["palazzetti-ecofire-lara"]
     for name in names:
         p = maps.load(name)
         ids = [f["id"] for f in p["fields"]]
@@ -66,10 +73,22 @@ def test_all_profiles_load():
 
 
 def test_extends_merges_by_id():
-    common = maps.by_key(maps.load("micronova-common"))
-    p937 = maps.load("micronova-p937")
+    common = maps.by_key(reference("micronova-common"))
+    p937 = reference("micronova-p937")
     ids = {f["id"] for f in p937["fields"]}
     assert {f["id"] for f in common.values()} <= ids
+
+
+def test_reference_notes_are_valid_but_not_deployable():
+    paths = sorted(REFERENCES.glob("*.yaml"))
+    assert len(paths) == 6
+    for path in paths:
+        assert maps.load(str(path))["reference_only"] is True
+        for generator in (maps.gen_device_map, maps.gen_esphome):
+            with pytest.raises(ValueError, match="reference-only"):
+                generator(str(path))
+        with pytest.raises(ValueError, match="reference-only"):
+            maps.render_markdown([str(path)])
 
 
 def test_unlocated_settings_never_generate_guessed_entities():
@@ -113,12 +132,12 @@ def test_profile_override_does_not_inherit_inapplicable_evidence(tmp_path):
 
 
 def test_reference_conflicts_and_representation_only_lara_credit():
-    ridiculous = {f["id"]: f for f in maps.load("micronova-ridiculouslab")["fields"]}
-    common = {f["id"]: f for f in maps.load("micronova-common")["fields"]}
+    ridiculous = {f["id"]: f for f in reference("micronova-ridiculouslab")["fields"]}
+    common = {f["id"]: f for f in reference("micronova-common")["fields"]}
     assert ridiculous["water_temperature"].get("scale", 1) == 1
     assert common["water_temperature"]["scale"] == 0.5
     assert not any(f["mem"] == "eeprom" for f in ridiculous.values())
-    marina = maps.load("micronova-marina")
+    marina = reference("micronova-marina")
     assert len([f for f in marina["fields"] if f["addr"] == 0x7B]) == 2
     lara = maps.load("palazzetti-ecofire-lara")
     fumes = next(f for f in lara["fields"] if f["id"] == "fumes_temperature")
@@ -137,6 +156,8 @@ def test_render_markdown():
     md = maps.render_markdown(maps.profiles())
     assert "0x0F9" in md or "0xF9" in md
     assert "False" not in md
+    assert "Same parameter, different address" not in md
+    assert "## Micronova" not in md
 
 
 def test_gen_esphome_is_valid_yaml():

@@ -1,7 +1,9 @@
+# Reference extraction only; not a maintained or deployable Lara map.
 # Board profile used by a community JavaScript controller for "P937" Micronova boards.
+reference_only: true
 profile: micronova-p937
 title: Micronova P937 board
-extends: micronova-common
+extends: ./micronova-common.yaml
 sources:
   p937: Community JavaScript Micronova controller, P937 profile (collected in 2020 notes)
 fields:

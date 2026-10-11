@@ -62,6 +62,9 @@ async function main() {
       await loaded;
       assert.equal(await evaluate('document.querySelectorAll(".byte").length'),256);
       assert.equal(await evaluate('document.getElementById("error").hidden'),true);
+      assert.equal(await evaluate('data.profiles.length'),1);
+      assert.equal(await evaluate('data.profiles[0].id'),"palazzetti-ecofire-lara");
+      assert.equal(await evaluate('document.getElementById("profile")'),null);
     }
     await open("ram");
     assert.match(await evaluate('document.getElementById("details").textContent'),/Nothing selected/);
@@ -121,13 +124,13 @@ async function main() {
     assert.equal(await evaluate('document.querySelector("[data-address=\'249\']").textContent'),"·");
     await evaluate('document.querySelector("[data-address=\'249\']").click()');
     assert.match(await evaluate('document.getElementById("details").textContent'),/failed reads/);
-    await evaluate('document.getElementById("profile").value="1";document.getElementById("profile").dispatchEvent(new Event("change"))');
+    await evaluate('data.captures.push({name:"other board",profile:"reference-only",bytes:{"ram:249":{n:1,last:0}}});data.captures=data.captures.filter(c=>c.profile!==data.profiles[0].id);chooseProfile()');
     assert.equal(await evaluate('document.getElementById("capture").options.length'),1);
-    await evaluate(`data.profiles[1].fields.push({
+    await evaluate(`data.profiles[0].fields.push({
       id:"test_word",name:"Test signed word",addr:256,width:2,members:[],
       encoding:"int16_le",scale:2,offset:10,status:"observed",mem:"ram"
     });
-    data.captures.push({name:"test",profile:data.profiles[1].id,first:1,last:2,bytes:{
+    data.captures.push({name:"test",profile:data.profiles[0].id,first:1,last:2,bytes:{
       "ram:256":{n:1,last:255,min:255,max:255,changes:0,distinct:1,rejected:0,first_t:1,last_t:1,points:[[1,255]],histogram:[[255,1]]},
       "ram:257":{n:1,last:255,min:255,max:255,changes:0,distinct:1,rejected:0,first_t:2,last_t:2,points:[[2,255]],histogram:[[255,1]]}
     }});chooseProfile();document.querySelector("[data-address='257']").click();`);

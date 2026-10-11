@@ -1,7 +1,9 @@
+# Reference extraction only; not a maintained or deployable Lara map.
 # Addresses used by the Palazzetti Connection Box firmware, from 2020 disassembly notes
 # (private repo notes/2020-palazzetti-repo/COMMANDS). The box reads a model/board code first and
 # then picks address sets per model, which is why the same parameter can sit at different addresses.
 # Notes were terse: entries are `reported` until checked against a live box or the binary.
+reference_only: true
 profile: palazzetti-connbox
 title: Palazzetti Connection Box (firmware notes, 2020)
 sources:

@@ -1,8 +1,10 @@
+# Reference extraction only; not a maintained or deployable Lara map.
 # Variant reported on the Italian "stufapellet" forum for another Micronova board
 # (formula: displayed = ADD + RATIO × raw). Kept to show how offsets move between boards.
+reference_only: true
 profile: micronova-forum
 title: Micronova variant (stufapellet forum table)
-extends: micronova-common
+extends: ./micronova-common.yaml
 sources:
   forum: "Community Micronova table: https://stufapellet.forumcommunity.net/?t=53061907 (2020 notes retained privately; applicability unverified)"
 fields:

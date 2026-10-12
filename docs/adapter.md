@@ -65,6 +65,16 @@ R1 limits **base current**, not bus voltage. Its 10 kΩ value does not make RX
 This asymmetric transistor arrangement is not automatically equivalent to a
 bidirectional level shifter.
 
+The owner's newly supplied notes cite
+[ba0sh1's 2016 ESP8266 experiment](https://ba0sh1.com/2016/08/03/is-esp8266-io-really-5v-tolerant/).
+It found microamp-scale current up to 5.5 V on a powered input and a released
+open-drain output. This is useful contrary evidence to the assertion that any
+5 V input necessarily destroys an ESP. However, the article explicitly
+**excludes applying 5 V to push-pull outputs** or the 3.3 V supply. Our UART TX
+is push-pull, and reset/unpowered behavior was not validated by that experiment.
+It does not supersede the cited datasheet limits or certify this HAT; use
+verified 3.3 V logic levels rather than relying on anecdotal tolerance.
+
 The drawing alone cannot establish:
 
 - whether RX has a pull-up and which rail it uses;

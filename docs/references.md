@@ -69,6 +69,22 @@ code supports configurable addresses and raw scaling, not Lara-specific applicab
 Remaining linked projects/manuals are a reference backlog, **not** a claim that all
 their addresses, revisions and parameters have been extracted or verified.
 
+Owner-supplied voltage references reviewed on 2026-10-12:
+
+- [AllAboutCircuits: Logic Signal Voltage Levels](https://www.allaboutcircuits.com/textbook/digital/chpt-3/logic-signal-voltage-levels/):
+  explains input/output thresholds and noise margin, including different TTL
+  and CMOS ranges. Those textbook examples are not Lara receiver specifications.
+  Content was retrieved during review; a subsequent request returned HTTP 403.
+- [ba0sh1: Is ESP8266 I/O really 5V tolerant?](https://ba0sh1.com/2016/08/03/is-esp8266-io-really-5v-tolerant/):
+  measured powered-input/released-open-drain tolerance up to 5.5 V on one setup.
+  Explicitly excludes 5 V on push-pull outputs or the supply; not a lifetime,
+  reset/unpowered or UART-HAT qualification. See [adapter analysis](adapter.md).
+- The retained KIT SUPERVISORE, Italian I023 GEN_02, French I023 air and LabTools
+  manuals were compared with the Lara owner manual. Their distinct board
+  generations, storage descriptions and timing/state-code conflicts are
+  summarized in [reference mapping notes](reference-mappings/README.md#controller-manuals-storage-and-version-dependent-meanings).
+  Proprietary originals remain private; no new reference profile enters the atlas.
+
 Not reviewed yet: [raziel83257/micronovaEsphome](https://github.com/raziel83257/micronovaEsphome),
 [ArthurG94/Stove](https://github.com/ArthurG94/Stove),
 [giovannidesisto/micronovaSupervisor](https://github.com/giovannidesisto/micronovaSupervisor).

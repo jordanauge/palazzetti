@@ -6,8 +6,11 @@ Older Palazzetti stoves, including the Ecofire Lara, have a controller board tha
 protocol, like many Italian pellet stove brands (Extraflame, Laminox, La Nordica, Piazzetta, ...). Newer
 Palazzetti stoves use a **Fumis** board with a different protocol that is not covered here; see
 [boards.md](boards.md) for the differences and how to tell which one a stove has. The Micronova board exposes
-a serial bus that the display panel, the Palazzetti Connection Box and service tools use to read and write the
-controller's **RAM** (live state) and **EEPROM** (persistent settings). This page describes that bus as
+a serial bus that the Palazzetti Connection Box and service tools use to read and write the
+controller's **RAM** (live state and working values) and **EEPROM** (persistent settings).
+The panel's connection to this particular Lara is not established as the same
+bus: reference manuals distinguish console and external serial connectors.
+This page describes the external bus as
 implemented in [micronova.h](../components/palazzetti/micronova.h) and [codec.py](../tools/plz/codec.py).
 
 ## 1. Physical layer
@@ -16,8 +19,8 @@ implemented in [micronova.h](../components/palazzetti/micronova.h) and [codec.py
 |---|---|
 | Baud rate | 1200 |
 | Framing | 8 data bits, no parity, **2 stop bits** (8N2) |
-| Medium | **single wire**, half-duplex, open-collector style, 5 V logic (TO VERIFY on the Lara connector) |
-| Roles | one master (us, the display panel, the Connection Box) polls; the controller answers |
+| Medium | **single wire**, half-duplex, open-collector style, nominal 5 V logic; owner measured 5 V unloaded, loaded thresholds/pull-up remain unverified |
+| Roles | one external master (our adapter or the Connection Box/service tool) polls; the controller answers; a shared panel bus is not established |
 
 Because TX and RX share one wire, a continuously connected receive path can
 see transmitted bytes as echo. Whether the ESP actually receives them depends
@@ -28,6 +31,13 @@ configuration choices; see the [source review](references.md#31-direct-source-re
 
 A frame of 2 bytes at 1200 8N2 takes ~18 ms; a full transaction (request + reply) takes ~40–60 ms.
 Polling 256 RAM addresses therefore takes ~15 s.
+
+The Lara-specific KIT SUPERVISORE manual (09/2005, p.11) independently specifies
+1200 8N2 with no flow control for its non-MiniStandard models.
+[Reference controller manuals](reference-mappings/README.md#controller-manuals-storage-and-version-dependent-meanings)
+place UT/PR settings in EEPROM, parameter banks separately and executable
+firmware in FLASH. That storage model does not imply RAM contains only sensor
+temperatures, nor identify Lara offsets or memory capacities.
 
 ## 2. Frames
 

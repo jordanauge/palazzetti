@@ -29,3 +29,34 @@ See [references](../references.md) for related projects and
 The [2026-10-12 direct review](../references.md#31-direct-source-review-2026-10-12)
 compares eni23, philibertc, fabrizio and official ESPHome code, including linked
 hardware/panel research, transport weaknesses and conflicting encodings.
+
+## Controller manuals: storage and version-dependent meanings
+
+The owner's Italian **I023 GEN_02 v1.0 (22/03/2007, 38 pages)** and French
+**I023 air (46 pages)** manuals are separate reference variants, not a Lara
+memory map. Originals and page-level provenance remain in the private Lara
+repository. The Italian appendix explicitly names **EDILVAL1.ENC** and
+**EDILVAL1.snet**; it is not a Palazzetti Lara parameter/default specification.
+
+| Evidence | Reusable fact | Limit on applicability |
+| --- | --- | --- |
+| Italian p.27; French section 11.12 | User UT and technical PR settings are in EEPROM; preset parameter banks are separate; selecting a bank replaces PR settings, not UT; executable firmware is in FLASH | Does not give Lara offsets, full EEPROM capacity or RAM mirror locations |
+| Italian pp.17-19 | Clock, weekday and schedule settings; schedule UI uses ten-minute steps | UI steps do not establish wire encodings; printed minute range 00..60 is anomalous |
+| Italian pp.30-31 | Timing, feed, fan, temperature and supplementary parameter groups; multiple default banks | Defaults are version/model-specific, not safe Lara tuning values |
+| Italian p.31 versus French revision history p.4 | Italian auger cycle is six seconds; French air manual records a correction to four seconds | Neither should be imposed on Lara's recorded ON/OFF timings |
+| Italian p.34 | State sequence 0 off, 1 ignition fan, 2 pellet load, 3 fire-on, 4 running, 5 stopping, 6 burn-pot clean, 7 cool-fire, 8 alarm | These are that manual's state codes, not Lara RAM F9 encodings |
+| Italian p.7 and French connector table | CN5 is console; CN13 is serial through an adapter; CN9 encoder supply is +5 V | Not an identification of Lara's installed PCB or a CN13 voltage/pinout specification |
+
+The Italian manual also assigns Pr28 a pellet-overtemperature role in its
+operating description but labels it future use in the parameter table. Preserve
+this conflict instead of inventing a universal meaning. Service access,
+calibration and reset codes remain private reference evidence; they do not
+authorize changes to the physical Lara.
+
+The Lara-specific **KIT SUPERVISORE 004721835 (09/2005)** independently
+specifies **1200 8N2 with no flow control** for its non-MiniStandard models.
+It distinguishes older non-universal boards from universal boards with firmware
+version at least 12. Its CN4 four-pin installation instruction and PC-side
+RS232/null-modem cabling refer to the supplied adapter system; they must not
+overwrite the I023 CN13 reference or establish bipolar voltage levels on the
+bare stove signal.

@@ -64,6 +64,15 @@ The manual's connector table does **not** provide CN13 logic thresholds.
 Having this manual in the collection does not identify Lara's installed PCB
 as I023, and L023/N100 references for other stoves must not fill that gap.
 
+The newly reviewed **KIT SUPERVISORE 004721835 (09/2005)** explicitly
+distinguishes older non-universal Mini Lara boards from universal Lara boards
+with firmware at least version 12, and specifies 1200 8N2 for both model
+groups. Its installation section names **CN4**, unlike the I023 manual's
+**CN13** serial reference. This is further evidence to identify the physical
+generation before applying another board's connector diagram. The Italian
+I023 GEN_02 appendix names EDILVAL1 firmware, not Lara; see
+[manual comparison](reference-mappings/README.md#controller-manuals-storage-and-version-dependent-meanings).
+
 For interface design, use **nominal 5 V single-wire logic on the stove side
 and 3.3 V logic on the ESP side**. The nominal stove voltage is supported by
 [published Micronova bus observations](https://k3a.me/ir-controller-for-pellet-stove-with-micronova-controller-stufe-e-pellet-aria-ir-telecomando/)

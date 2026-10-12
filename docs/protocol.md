@@ -19,9 +19,12 @@ implemented in [micronova.h](../components/palazzetti/micronova.h) and [codec.py
 | Medium | **single wire**, half-duplex, open-collector style, 5 V logic (TO VERIFY on the Lara connector) |
 | Roles | one master (us, the display panel, the Connection Box) polls; the controller answers |
 
-Because TX and RX share one wire, everything the master sends is also seen on its own RX line ("echo").
-The [adapter](adapter.md) makes this visible to the ESP8266, and the component discards the echo
-(`echo: auto` detects whether an echo is present on the first frame).
+Because TX and RX share one wire, a continuously connected receive path can
+see transmitted bytes as echo. Whether the ESP actually receives them depends
+on the [adapter](adapter.md), electrical thresholds and RX gating. Our component
+handles echo (`echo: auto`); official ESPHome's optocoupler topology gates RX
+during TX instead. These are different hardware assumptions, not interchangeable
+configuration choices; see the [source review](references.md#31-direct-source-review-2026-10-12).
 
 A frame of 2 bytes at 1200 8N2 takes ~18 ms; a full transaction (request + reply) takes ~40–60 ms.
 Polling 256 RAM addresses therefore takes ~15 s.
@@ -76,8 +79,10 @@ TO VERIFY: the lab tool logs the raw reply of every write (`plz write`) so it ca
 | Gap between frames | 30 ms | `frame_gap` |
 | Retries on timeout/bad checksum | 2 | `max_retries` |
 
-The display panel is also a master on the same wire. Collisions show up as timeouts or bad checksums and are
-retried; `plz info` (or `info` on the lab server) exposes the counters. Keep polling intervals reasonable
+Whether the Lara display panel shares this serial bus remains unverified.
+Other participants, if present, can cause collisions that show up as timeouts
+or bad checksums and are retried; `plz info` (or `info` on the lab server)
+exposes the counters. Keep polling intervals reasonable
 (≥ 10 s per entity) so the panel stays responsive.
 
 ## 4. Variations across stoves

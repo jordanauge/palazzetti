@@ -13,7 +13,7 @@ Palazzetti stoves have shipped with two kinds of control board, and the projects
 
 | Family | Bus | Frames | Addresses | Used by |
 |---|---|---|---|---|
-| **Micronova** | 1-wire half duplex, 1200 baud 8N2 | 2-byte read / 4-byte write, see [protocol.md](protocol.md) | 8-bit RAM and EEPROM | Ecofire Lara (**implemented here**), Extraflame, MCZ, Laminox, Ungaro, Artel, L'Asolana… |
+| **Micronova** | 1-wire half duplex, 1200 baud 8N2 | 2-byte read / 4-byte write, see [protocol.md](protocol.md) | Common examples use 8-bit addresses; our bridge-derived framing supports 13-bit addresses in separate RAM/EEPROM spaces | Ecofire Lara (**implemented here**), Extraflame, MCZ, Laminox, Ungaro, Artel, L'Asolana… |
 | **Fumis** (Alpha) | serial, 38400 baud | 11-byte frames | 16-bit (`0x20xx`, `0x2100` serial number…) | newer Palazzetti (not implemented), Jotul, TurboFonte, Godin, Fonte Flamme, Invicta, Casatelli, Alpis, HETA |
 
 The Ecofire Lara has a Micronova-protocol board, and only that protocol is implemented here; the evidence and
@@ -26,8 +26,8 @@ the Micronova bus.
 
 | Project | Platform | Notes | Reusable for us |
 |---|---|---|---|
-| **[ESPHome `micronova`](https://esphome.io/components/micronova/)** ([source](https://github.com/esphome/esphome/tree/dev/esphome/components/micronova)) | ESPHome core | Official component: UART 1200 8N2, `enable_rx_pin`, `memory_location`/`memory_address` per entity. Tested on Extraflame boards. | Frame handling, configuration vocabulary, adapter schematic (credited to philibertc). Our component keeps the same frame layer and adds profiles, scanning and polling ([esphome.md](esphome.md)). |
-| **[Jorre05/micronova](https://github.com/Jorre05/micronova)** | ESPHome external | Origin of the core component, still where fixes land first. | Watch for fixes not yet upstream. |
+| **[ESPHome `micronova`](https://esphome.io/components/micronova/)** ([source](https://github.com/esphome/esphome/tree/dev/esphome/components/micronova)) | ESPHome core | Official component: UART 1200 8N2, required `enable_rx_pin`, configurable entity addresses. Docs report testing on ExtraFlame Ketty Evo 2.0 and Ilary Top (2024), not Lara. | Independent transport/queue comparison, configuration vocabulary and philibertc optocoupler reference. Our transport handles echo rather than requiring RX gating; see detailed review below. |
+| **[Jorre05/micronova](https://github.com/Jorre05/micronova)** | ESPHome external | Historical external implementation associated with the core component. | Compare specific revisions with upstream; do not assume fixes always land here first. |
 | **[r-hmn/micronova_stove_esphome](https://github.com/r-hmn/micronova_stove_esphome)** | ESPHome + Arduino | Artel Idro 15; includes a PCB. | Second adapter PCB to compare with [adapter.md](adapter.md). |
 | **[morettigiorgio/micronova-C6](https://github.com/morettigiorgio/micronova-C6)** | ESPHome, ESP32-C6 | Powered from the stove bus; relay outputs; ultrasonic pellet level. | Self-powered design; pellet-level sensor idea. |
 | **[Isno-Open/OpenXtraflame](https://github.com/Isno-Open/OpenXtraflame)** | ESP32 firmware, MQTT | Not ESPHome; Extraflame boards. | Independent address set for cross-checks. |
@@ -41,7 +41,7 @@ the Micronova bus.
 | **[k3a/MicronovaPelletStoveController](https://github.com/k3a/MicronovaPelletStoveController)** + [blog post](https://k3a.me/ir-controller-for-pellet-stove-with-micronova-controller-stufe-e-pellet-aria-ir-telecomando/) | Arduino | Early write-up: connector pinout, **20 V on one pin** (killed a naive UART), logic-analyser captures, IR remote. | Connector and voltage warnings, used in [hardware.md](hardware.md). |
 | **[cotestatnt/PelletStoveMicronova](https://github.com/cotestatnt/PelletStoveMicronova)** | ESP8266 | Half-duplex serial on ESP8266. | Same MCU as ours: echo handling, timing. |
 | **[dili900/MicronovaBerry](https://github.com/dili900/MicronovaBerry)** | Tasmota (Berry) | Board I023_5; TX and RX joined through a **single diode**; `StoveReadRAM`/`StoveWriteEEPROM` commands. | Simplest possible adapter, an alternative to [adapter.md](adapter.md); command naming. |
-| **[fabrizioromanelli/Pellet-Stove-Control](https://github.com/fabrizioromanelli/Pellet-Stove-Control)** | ESP, MQTT | Micronova MQTT bridge. | Cross-check the command set. |
+| **[fabrizioromanelli/Pellet-Stove-Control](https://github.com/fabrizioromanelli/Pellet-Stove-Control)** ([README](https://github.com/fabrizioromanelli/Pellet-Stove-Control/blob/master/README.md)) | ESP8266/ESP32, MQTT | N100/D1 Mini implementation, optocoupler PCB, settings in LittleFS. README reports Ecofire Violetta 7 tested, not Lara. | Alternative command-request versus state-write paths; PCB and mapping workbook are references, not Lara compatibility evidence. |
 | **[JoseHerrero99/micronova-pellets-stove](https://github.com/JoseHerrero99/micronova-pellets-stove)** | ESP, Blynk | PC817 optocoupler circuit with component values. | Component values for the adapter. |
 | **[procaktomasz/ARTEL-MicronovaPelletStoveController](https://github.com/procaktomasz/ARTEL-MicronovaPelletStoveController)** | C | RAM/EEPROM files for an Artel boiler. | Which addresses stay stable across boards. |
 | **[DanieleSgroi/Pelog](https://github.com/DanieleSgroi/Pelog)** | Arduino | Read-only data logger (Idro stove). | Read-only logging, like our first lab sessions. |
@@ -72,6 +72,102 @@ their addresses, revisions and parameters have been extracted or verified.
 Not reviewed yet: [raziel83257/micronovaEsphome](https://github.com/raziel83257/micronovaEsphome),
 [ArthurG94/Stove](https://github.com/ArthurG94/Stove),
 [giovannidesisto/micronovaSupervisor](https://github.com/giovannidesisto/micronovaSupervisor).
+
+### 3.1 Direct source review, 2026-10-12
+
+The requested repositories, sketches and official documentation were reviewed
+directly, not just collected as links. These are independent implementations or
+related community work, **not independent confirmations of every shared address**.
+Moving branch links above aid navigation; the source anchors below pin the
+reviewed revisions. No controller script was executed or copied into our firmware.
+
+| Source / reviewed revision | Material inspected | Derived findings and limitations |
+|---|---|---|
+| eni23, `f5ecf44f2327185c4b41bfb92825389cedaccf53` | [README](https://github.com/eni23/micronova-controller/blob/f5ecf44f2327185c4b41bfb92825389cedaccf53/README.md), [transport](https://github.com/eni23/micronova-controller/blob/f5ecf44f2327185c4b41bfb92825389cedaccf53/src/micronova_stove.cpp), [additional locations](https://github.com/eni23/micronova-controller/blob/f5ecf44f2327185c4b41bfb92825389cedaccf53/doc/stove-locations.md) | L'Asolana Marina, L023_7; ESP32 TCP/Python/optional web interface. RAM/EEPROM maps explicitly model-specific. Reports slow shutdown from a direct state write and a repeated IR-command request alternative; source `off()` uses simulated IR rather than the direct state path. |
+| philibertc, `91e5dd4a8e259d16e09f25dff887c4a1d6878ed8` | [README](https://github.com/philibertc/micronova_controller/blob/91e5dd4a8e259d16e09f25dff887c4a1d6878ed8/README.md), [requested sketch](https://github.com/philibertc/micronova_controller/blob/91e5dd4a8e259d16e09f25dff887c4a1d6878ed8/micronova_controller.ino), linked wiki and PCB README | MQTT, software UART 1200 8N2, RX-enable optocoupler interface. Direct state-register commands and source-specific setpoint scaling. Source inspection reveals transaction-boundary and receive-buffer weaknesses; do not adopt as a checked acquisition engine. |
+| fabrizio, `34195c650968d8684bcb5b9011aa25c1f1e27a40` | [README](https://github.com/fabrizioromanelli/Pellet-Stove-Control/blob/34195c650968d8684bcb5b9011aa25c1f1e27a40/README.md), [sketch](https://github.com/fabrizioromanelli/Pellet-Stove-Control/blob/34195c650968d8684bcb5b9011aa25c1f1e27a40/Pellet-Stove-Control.ino) | N100 reference with configurable Wi-Fi/MQTT, LittleFS, PCB and command workbook. ON uses an IR-style request location, OFF writes zero to state. This is not the same procedure as eni23 or the bridge. Its command MQTT publication is not proof of controller acknowledgement. |
+| ESPHome dev, `8191cd18d27678705881522313153bec19a8fe9e` | [official documentation](https://esphome.io/components/micronova/), [transport](https://github.com/esphome/esphome/blob/8191cd18d27678705881522313153bec19a8fe9e/esphome/components/micronova/micronova.cpp), [switch](https://github.com/esphome/esphome/blob/8191cd18d27678705881522313153bec19a8fe9e/esphome/components/micronova/switch/micronova_switch.cpp), [sensor scaling](https://github.com/esphome/esphome/blob/8191cd18d27678705881522313153bec19a8fe9e/esphome/components/micronova/sensor/micronova_sensor.cpp) | Nonblocking queued transport, 200 ms reply timeout, byte-wrapped header-inclusive checksum, writes before reads, RX gated around transmit with UART flush. Switch uses controller-specific state assumptions and optimistic publication after enqueue, not verified completion. |
+
+#### Encoding and storage evidence
+
+- All four support the basic 1200 8N2, two-byte read/four-byte write framing.
+  ESPHome's `memory_location` is a protocol header/location, **not an EEPROM base
+  offset**; comparing it with our `mem` selector requires understanding the frame.
+- RAM contains live sensors **and** working setpoints/state/timers. EEPROM stores
+  persistent parameters, but writes may immediately change operating settings.
+  eni23's claim that RAM is battery-backed and can be rewritten "safely" does not
+  establish battery backing or safe actuation on Lara.
+- eni23 reports ambient raw/2, unit-scale stored target, decimal live clock,
+  BCD stored clock and ten-minute schedule units. The README lists RAM 7B twice
+  (seconds and weekday), and swaps EEPROM F9/FA hour/minute relative to the
+  supplied bridge; keep these discrepancies, do not resolve by copying a table.
+- philibertc's sketch multiplies its target-temperature write by two; eni23
+  and fabrizio use different stored representations/addresses. ESPHome makes
+  thermostat step and sensor scaling configurable. Shared parameter names do
+  not imply equal raw encodings or offsets.
+- ESPHome's fan implementation returns zero for raw zero, otherwise
+  `10*raw + fan_rpm_offset`. That zero case matters. eni23's proposed
+  maximum-RPM/255 bias is not a calibrated conversion for Lara.
+- Existing [Marina extraction](reference-mappings/micronova-marina.yaml) remains
+  reference-only. No addresses or write rules from this review were promoted
+  into the maintained Lara map.
+
+#### Transport/code cautions found during review
+
+- eni23's `flushInput()` drains `Serial`, not `StoveSerial`. Its reader wraps the
+  two-byte buffer on extra bytes, does not require a complete reply before
+  returning a value, and does not reject the checksum mismatch. Its
+  checksum-minus-value address comparison omits the EEPROM header. These are
+  useful warnings, not acquisition patterns to copy.
+- philibertc's requested sketch drains arbitrary available bytes into a two-byte
+  array without an index bound. Its ON path places `getStates()` and a one-second
+  delay **inside the four-byte write loop**, interleaving reads with a partial
+  command. That can disrupt command framing; it is source evidence, not proof
+  of behavior on the owner's historical setup.
+- fabrizio's current receive loop stops at two bytes, avoiding that particular
+  overflow. However, response dispatch reconstructs an address from checksum
+  minus value rather than validating against a stored outstanding request.
+  EEPROM headers require special care; leftover or late bytes can be attributed
+  to the wrong operation. `sendCommand()` does not verify a write reply.
+- ESPHome explicitly requires a receive pull-up and an RX-enable output for its
+  optocoupler circuit. Our continuously connected diode/BJT receive path is a
+  different topology: adding an arbitrary enable pin or copying its UART pin
+  choices would not implement RX gating on the owner's HAT.
+
+#### Linked technical sources followed
+
+The bounded follow-up covers relevant protocol, hardware and panel references.
+Storefronts, donation links, badges and general site navigation are not protocol
+evidence. "Linked" below is deliberately distinct from "content reviewed".
+
+| Linked material | Review status and value |
+|---|---|
+| [philibertc PCB](https://github.com/philibertc/micronova_controller_pcb), [wiki](https://github.com/philibertc/micronova_controller/wiki), [build guide](https://github.com/philibertc/micronova_controller/wiki/How-to-build-it) | README/wiki source reviewed. Three optocouplers, wiki specifies 470 ohm resistors; fabrizio lists 510 ohm. These are circuit-specific, not replacements for our 10 kohm base resistor. Wiki GPIO35 RX-enable example on ESP32 is input-only on the classic ESP32: do not copy it as an output assignment. |
+| [How it works](https://github.com/philibertc/micronova_controller/wiki/How-it-works), [Known issues](https://github.com/philibertc/micronova_controller/wiki/Known-issues), [Powering](https://github.com/philibertc/micronova_controller/wiki/Powering-the-circuit) | Protocol page delegates to ridiculouslab; known-issues/powering pages currently contain placeholder text, not completed validation guidance. |
+| [Wiki compatibility](https://github.com/philibertc/micronova_controller/wiki/Compatible-stoves-and-boilers), [upload guide](https://github.com/philibertc/micronova_controller/wiki/How-to-upload-the-firmware), [MQTT guide](https://github.com/philibertc/micronova_controller/wiki/Configuring-MQTT-on-your-home-automation-server), [kit guide](https://github.com/philibertc/micronova_controller/wiki/User-guide-for-the-PCB-kit-(english)), [community discussion](https://github.com/philibertc/micronova_controller/discussions/63) | Discovered from README/wiki navigation; contents not reviewed in this pass. Relevant support/setup leads, not Lara compatibility proof. |
+| [fabrizio schematic](https://github.com/fabrizioromanelli/Pellet-Stove-Control/blob/master/PCB/Schematics.png), [PCB sources](https://github.com/fabrizioromanelli/Pellet-Stove-Control/tree/master/PCB), [mapping workbook](https://github.com/fabrizioromanelli/Pellet-Stove-Control/blob/master/docs/micronova_stove_commands_mapping.xlsx) | Linked reference artifacts; directory presence and README description checked. Image netlist and workbook cells not independently analysed in this pass. Do not treat them as extracted Lara data. |
+| [k3a serial/IR article](https://k3a.me/ir-controller-for-pellet-stove-with-micronova-controller-stufe-e-pellet-aria-ir-telecomando/) | Reviewed text: distinct PNP/diode experiment and later NPN/protection circuit, model-specific voltage/pinout observations and dependence of echo on electrical thresholds. Does not identify the owner's transistor or certify GPIO protection. |
+| [k3a LCD/panel investigation](https://k3a.me/micronova-pellet-stove-lcd-reverse-engineering/), [panel sketch](https://github.com/k3a/MicronovaPelletStoveController/blob/master/StufaLCD.ino), [pinout](https://github.com/k3a/MicronovaPelletStoveController/blob/master/pinouts.png), [board design](https://github.com/k3a/MicronovaPelletStoveController/tree/master/esp_eagle) | LCD article text reviewed: clock/data and ABC multiplexing drive segments and scan buttons; IR is another signal. The panel is not automatically a UART client. Sketch/image/board artifacts are linked for future bench identification, not tested on Lara. |
+| [Arduino-IRremote](https://github.com/shirriff/Arduino-IRremote), [IR background](https://learn.sparkfun.com/tutorials/ir-communication), [HC42 decoder datasheet](https://www.ti.com/lit/ds/symlink/sn54hc42.pdf) | Discovered through k3a; contents not reviewed here. Relevant to a separately identified IR/LCD panel interface, not our serial decoder. |
+| [ridiculouslab current page](https://www.ridiculouslab.com/arguments/iot/stufa/micronova_en.php), [older converter URL](https://ridiculouslab.altervista.org/en/micronova-protocol-converter/) | Current URL returned HTTP 406 in this pass; previous 2026-10-11 review remains recorded. Older host failed DNS resolution. No claim of a successful fresh re-review. |
+| [StufaPellet linked topic 57458738](https://stufapellet.forumcommunity.net/?t=57458738), [original topic 53061907](https://stufapellet.forumcommunity.net/?t=53061907) | eni23 links the first; k3a links the second. Topic 57458738 redirected to login; no authenticated content extracted. Original topic retains prior historical provenance. |
+
+#### Reuse and investigation decisions
+
+Keep our checked, read-only acquisition engine. Prioritise receive-state tests,
+late/extra-byte diagnostics and distinguishing command submission from confirmed
+controller behavior. Do not add automatic state writes, forced shutdown or IR
+request replay based on another stove's examples.
+
+For the spare panel, first identify its connector and electronics: k3a provides
+a concrete counterexample to the assumption that every panel uses the external
+serial bus. If ours uses multiplexed button/display signals, capture those rather
+than trying to decode them as 1200-baud UART.
+
+License notices also constrain reuse: eni23 and fabrizio include GPLv3 notices;
+philibertc's current software README specifies CC-BY-NC-SA with a historical
+CC-BY-NC-ND boundary, while its PCB README specifies CC-BY-NC-ND. Credit derived
+facts and check the exact file/revision terms before importing code or designs.
 
 ## 4. Palazzetti, Connection Box and Fumis
 

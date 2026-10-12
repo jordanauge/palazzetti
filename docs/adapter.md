@@ -74,6 +74,13 @@ The intended receive path can echo our transmitted bits. The firmware uses
 `echo: auto` to distinguish echo from a reply; echo handling is separate from
 UART pin mapping and electrical inversion.
 
+[k3a's circuit investigation](https://k3a.me/ir-controller-for-pellet-stove-with-micronova-controller-stufe-e-pellet-aria-ir-telecomando/)
+describes a PNP/diode experiment followed by a different NPN circuit with TX
+protection, and reports echo dependence on voltage thresholds. These are useful
+comparison circuits, not identification of the owner's HAT or proof that its
+GPIOs are protected. The [source review](references.md#31-direct-source-review-2026-10-12)
+also distinguishes optocoupler RX gating from this continuously connected path.
+
 ## 2. Configuration B: the conflicting MOSFET reference
 
 The previous page centered the following **different** reference topology.

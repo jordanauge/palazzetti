@@ -12,7 +12,7 @@ The only maintained map is [Ecofire Lara](../../maps/palazzetti-ecofire-lara.yam
 | [micronova-p937.yaml](micronova-p937.yaml) | Historical community JavaScript P937 controller notes; original evidence retained privately |
 | [micronova-ridiculouslab.yaml](micronova-ridiculouslab.yaml) | [ridiculouslab](https://www.ridiculouslab.com/arguments/iot/stufa/micronova_en.php); RAM table only |
 | [micronova-marina.yaml](micronova-marina.yaml) | [eni23/micronova-controller](https://github.com/eni23/micronova-controller); L'Asolana Marina layout |
-| [palazzetti-connbox.yaml](palazzetti-connbox.yaml) | Historical Connection Box disassembly notes; model branch not established on Lara |
+| [palazzetti-connbox.yaml](palazzetti-connbox.yaml) | Identified 69055a28 Connection Box build; corrects historical dispatch/parameter claims, applicability not established on Lara |
 
 Each file retains its source descriptions, formulas, uncertainties and any
 claim-specific evidence. The YAML format is kept to avoid losing structured
@@ -26,3 +26,6 @@ unresolved here, not additional selectable boards in the web UI.
 
 See [references](../references.md) for related projects and
 [the map schema](../../maps/README.md) for provenance conventions.
+The [2026-10-12 direct review](../references.md#31-direct-source-review-2026-10-12)
+compares eni23, philibertc, fabrizio and official ESPHome code, including linked
+hardware/panel research, transport weaknesses and conflicting encodings.

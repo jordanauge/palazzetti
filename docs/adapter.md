@@ -73,7 +73,8 @@ The drawing alone cannot establish:
 - whether the bus can pull GPIO15 high enough to prevent boot;
 - whether connector ground is safely compatible with USB/computer ground.
 
-The intended receive path can echo our transmitted bits. The firmware uses
+Whether the receive path echoes our transmitted bits depends on its biasing.
+The retained topology can suppress echo, as explained below. The firmware uses
 `echo: auto` to distinguish echo from a reply; echo handling is separate from
 UART pin mapping and electrical inversion.
 
@@ -210,6 +211,99 @@ Keep writes disabled. Do not change diode type, resistor value, pull-up or
 firmware inversion blindly: a change that improves one voltage margin can
 worsen another or change echo behavior. The existing [bench checks](#5-establish-the-as-built-circuit-before-connecting)
 must cover both directions, reset and unpowered operation.
+
+### 1.2 Why the small circuit can work, and comparison with eni23
+
+The useful trick is **direction discrimination through Q1's base bias**,
+not a generic two-way voltage divider. At UART idle TX is high. When the
+stove replies with a low, that high supplies base current and Q1 pulls RX low.
+When we transmit a low, TX also removes the base drive: D1 pulls the bus low
+without deliberately switching Q1 on. This can suppress self-echo without a
+separate receive-enable GPIO. The circuit needs a correct RX pull-up and
+compatible voltage/current margins for this explanation to apply.
+
+| Bus operation | ESP TX | D1 | Q1, emitter on bus | Expected RX with correct 3.3 V pull-up |
+|---|---|---|---|---|
+| Idle / stove sends high | High | May conduct from stove pull-up and load bus high | Off | High |
+| ESP sends low | Low | Conducting; bus near TX-low plus diode drop | No forward base drive | Normally high: self-echo suppressed |
+| Stove sends low while ESP listens | High | Reverse-biased | On from TX through R1 | Low, following stove reply |
+| Both try to talk / reset / ESP unpowered | Not a valid listening assumption | Depends on drivers | Depends on bias | Not guaranteed; test separately |
+
+This explains **how valid communication is possible** at 1200 baud with few
+parts. It does not prove every historical sample was correct or certify the
+HAT's unshown supply, pull-up and protection. An adequately biased discrete
+receiver need not be inherently less reliable than an optocoupler receiver;
+adequacy must be established from the actual parts and waveforms.
+
+The [eni23 README](https://github.com/eni23/micronova-controller/blob/f5ecf44f2327185c4b41bfb92825389cedaccf53/README.md)
+uses an optocoupler circuit based on philibertc, with explicit `ENABLE_RX`.
+Its parts list is **three PC817/EL817 optocouplers, two 150 ohm resistors,
+one 330 ohm resistor and a 20 V-to-5 V step-down module**. Those values belong to
+**eni23's circuit**, not ours; its
+[schematic](https://github.com/eni23/micronova-controller/blob/f5ecf44f2327185c4b41bfb92825389cedaccf53/doc/schematic-ifboard.png)
+must be consulted for wiring, rather than mixing other projects' resistor lists.
+
+| Aspect | Retained diode/R1/NPN topology | eni23 optocoupler interface |
+|---|---|---|
+| Core signal parts | One diode, one 10 kΩ base resistor, one NPN, plus required receive bias elsewhere | Three optocouplers and three listed resistors |
+| ESP control pins | TX and RX; no separate RX-enable in drawing | TX, RX and `ENABLE_RX` |
+| Direction/echo handling | Analog bias distinguishes ESP-low from stove-low; depends on actual margins | Explicit transmit/receive selection in hardware/software |
+| Stove high level | Diode can load it toward TX-high plus forward drop | Different LED/transistor loading; cannot assume identical waveforms |
+| Isolation | No galvanic isolation in these three components; requires safe common reference | Optocouplers provide signal-barrier capability, but shared ground/power or USB paths can defeat system isolation |
+| Design burden | Fewer parts/pins, but unknown pull-up/protection must be resolved | More parts and switching logic; LED current, CTR, pull-ups and timing also need validation |
+
+Thus ours is **simpler in component count and firmware direction control**.
+It is not a substitute for isolation where isolation is required. Retaining
+it is reasonable if its complete circuit meets logic margins, GPIO current
+and voltage ratings, boot constraints and ground/power safety. We have not
+yet demonstrated all those conditions.
+
+### 1.3 Falstad simulation: topology first, identified parts later
+
+[Falstad / CircuitJS](https://www.falstad.com/circuit/) can illustrate this
+mechanism and compare bias choices before touching hardware. The following
+is a **model construction recipe**, not a simulation run or an as-built BOM.
+No result from an idealised model should be reported as measured Lara behavior.
+
+Construct the retained three nets, using a **generic NPN** and a **generic
+silicon diode** initially. Do not label either BC547, 2N3904 or 1N4148 until
+the installed parts are identified. Add the test environment explicitly:
+
+| Model element | Initial value / setup | Evidence status |
+|---|---|---|
+| Stove pull-up supply | 5 V | Nominal domain and owner unloaded signal observation; actual pull-up rail not traced |
+| Stove pull-up resistor | 10 kΩ initial; compare 1 kΩ, 4.7 kΩ and 47 kΩ | Test choices, not measured board values |
+| ESP TX source | Switchable 0/3.3 V, small series output resistance | Idealised GPIO; cannot certify reverse-current tolerance |
+| D1 | Generic silicon model; anode bus, cathode TX | Installed diode model unknown |
+| R1 | 10 kΩ, TX to base | Value in retained drawing; as-built value not measured |
+| Q1 | Generic NPN, emitter bus, collector RX | NPN in retained drawing; installed model/gain/pinout unknown |
+| RX pull-up | 10 kΩ to 3.3 V initially; compare 4.7 kΩ and 47 kΩ | Required model bias, not an identified HAT resistor |
+| Stove low driver | Switch from bus to GND through illustrative 100 Ω | Emulates a pull-down, not a push-pull square-wave source; value unmeasured |
+| Capacitance | Add bus/RX capacitance for sensitivity testing | Cable/input values unknown; ideal zero-capacitance result is insufficient |
+
+Start with DC cases: (1) TX-high/stove switch open, (2) TX-low/switch open,
+(3) TX-high/stove switch closed. Inspect bus voltage, RX voltage, diode
+current, base current and TX-source current direction. In case 2 Q1 should
+not produce the same RX-low as case 3. Compare with the truth table above.
+
+Then investigate slow edges with alternating lows/highs: a **600 Hz square
+wave with 50% duty** gives 833 microseconds per half-cycle, illustrating
+alternating 1200-baud bits. It is **not a complete 8N2 UART request/reply**.
+Drive the stove through the pull-down switch, leaving high bits to the bus
+pull-up; a forced 0/5 V bus voltage source would hide loading effects.
+Test TX and stove phases separately, then look at overlap, reset and
+unpowered conditions.
+
+Sweep diode model, transistor gain, pull-ups and capacitance. A working
+generic NPN model establishes only plausibility. CircuitJS does not represent
+the ESP's actual output protection/clamps, the exact MCU thresholds, or all
+transistor breakdown/failure modes unless explicitly modelled; an ideal TX
+source can absorb current that a physical GPIO cannot safely absorb.
+
+Component identification is pending additional owner documents. The available
+retained drawing establishes **10 kΩ and NPN**, not diode/transistor part
+numbers. Future markings, purchase records or original construction notes must
+resolve those identities before a part-specific simulation or approved BOM.
 
 ## 2. Configuration B: the conflicting MOSFET reference
 

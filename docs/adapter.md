@@ -96,7 +96,7 @@ The voltage domains must be distinguished:
 
 | Node | Reference/design expectation | Lara/as-built evidence |
 |---|---|---|
-| Stove serial bus, unloaded idle | Community Micronova/Laminox measurements report about **5 V**, with a pull-up; low bits are near **0 V** | Not measured on Lara; its pull-up strength and receiver thresholds are unknown |
+| Stove serial bus, unloaded idle | Community Micronova/Laminox measurements report about **5 V**, with a pull-up; low bits are near **0 V** | Owner reports **5 V on the serial signal relative to stove signal GND, ESP/HAT disconnected**, 2026-10-12; activity/state and instrument unspecified; pull-up strength and thresholds unknown |
 | Stove connector supply | References describe distinct **+5 V** and sometimes **about +20 V** contacts | Owner identifies VCC/GND wires, but voltage, pin numbers and available current remain unverified |
 | ESP logic supply | **3.3 V nominal**, distinct from a devkit's possible 5 V regulator input | HAT supply/regulator path not recorded; check the exact board, not its `VCC` label |
 | D8 / GPIO15 TX | Approximately 0/3.3 V when UART drives it | Actual loaded output and reset/unpowered behavior not measured |
@@ -104,7 +104,9 @@ The voltage domains must be distinguished:
 
 Sources: [k3a serial investigation](https://k3a.me/ir-controller-for-pellet-stove-with-micronova-controller-stufe-e-pellet-aria-ir-telecomando/)
 and the [philibertc build reference](https://github.com/philibertc/micronova_controller/wiki/How-to-build-it)
-describe other boards, **not a measured Lara pinout**. The DB9 shape does not
+describe other boards, **not a measured Lara pinout**. The owner's separate
+5 V signal observation agrees with the nominal bus level, but does not establish
+low-bit waveforms, supply-contact voltages or ground isolation. The DB9 shape does not
 imply bipolar RS232 levels. The signal ground is not automatically chassis/earth.
 
 Figure 2 separates the stove bus from the two ESP nodes. Its numbers are

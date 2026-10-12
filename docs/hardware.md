@@ -11,7 +11,9 @@ yet; check them before connecting anything to the stove.
 ![Wiring overview](figures/hardware.1.wiring.svg)
 
 **Figure 1**: Signal chain. Community Micronova references describe a nominal 5 V single-wire serial bus;
-the actual Lara levels remain unmeasured. A cable ends in the
+the owner reports 5 V on Lara's serial signal relative to signal GND with the
+ESP/HAT disconnected (2026-10-12). Loaded levels and bit waveforms remain
+unmeasured. A cable ends in the
 device's DB9 ("RS232") plug; the adapter splits the bus into TX/RX at 3.3 V for the ESP8266's UART0 on its
 alternate pins. Logs go out on UART1 so that UART0 is dedicated to the stove.
 
@@ -89,7 +91,7 @@ ESP32 ports require adapting the board/UART configuration; they have not been va
 
 | Signal | Stove connector pin | DB9 pin on the device | Notes |
 |---|---|---|---|
-| Serial (bus) | TO VERIFY | TO VERIFY | Reference nominal 5 V idle; loaded idle/low and Lara thresholds unmeasured |
+| Serial (bus) | TO VERIFY | TO VERIFY | Owner measures 5 V relative to signal GND with ESP/HAT disconnected; loaded idle/low and Lara thresholds unmeasured |
 | +5 V | TO VERIFY | TO VERIFY | available on most Micronova boards; current budget unknown |
 | GND | TO VERIFY | TO VERIFY | |
 | other (+20 V on some Micronova boards) | TO VERIFY | not connected | **never connect to the ESP** |

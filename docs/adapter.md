@@ -13,6 +13,9 @@ three signal nets and a resistor value, but is not a complete, electrically
 validated construction schematic. Physical HAT contact positions, green-wire
 identity, transistor part/lead order and stove connector pins remain unresolved.
 Do not infer how to insert the ESP from this diagram.
+The owner has since confirmed insertion direction privately; this does not
+verify the electrical levels. See [voltage margins below](#11-voltage-levels-and-error-mechanisms)
+for what the circuit is expected to do and what remains to be measured on Lara.
 
 ## 1. Configuration A: the retained diode/resistor/NPN drawing
 
@@ -81,6 +84,123 @@ comparison circuits, not identification of the owner's HAT or proof that its
 GPIOs are protected. The [source review](references.md#31-direct-source-review-2026-10-12)
 also distinguishes optocoupler RX gating from this continuously connected path.
 
+### 1.1 Voltage levels and error mechanisms
+
+**Yes: this circuit can introduce errors through insufficient voltage margins.**
+It can also expose the ESP to excessive voltage; "voltage too low" is not the
+only possible failure. No waveform or supply measurement from the actual Lara
+has yet established either failure. The independently identified historical
+checksum bugs remain software bugs, even if the hardware is also marginal.
+
+The voltage domains must be distinguished:
+
+| Node | Reference/design expectation | Lara/as-built evidence |
+|---|---|---|
+| Stove serial bus, unloaded idle | Community Micronova/Laminox measurements report about **5 V**, with a pull-up; low bits are near **0 V** | Not measured on Lara; its pull-up strength and receiver thresholds are unknown |
+| Stove connector supply | References describe distinct **+5 V** and sometimes **about +20 V** contacts | Owner identifies VCC/GND wires, but voltage, pin numbers and available current remain unverified |
+| ESP logic supply | **3.3 V nominal**, distinct from a devkit's possible 5 V regulator input | HAT supply/regulator path not recorded; check the exact board, not its `VCC` label |
+| D8 / GPIO15 TX | Approximately 0/3.3 V when UART drives it | Actual loaded output and reset/unpowered behavior not measured |
+| D7 / GPIO13 RX | Must be a clean, ESP-compatible low/high, normally near 0/3.3 V | Pull-up existence, rail, strength and Q1 output levels unverified |
+
+Sources: [k3a serial investigation](https://k3a.me/ir-controller-for-pellet-stove-with-micronova-controller-stufe-e-pellet-aria-ir-telecomando/)
+and the [philibertc build reference](https://github.com/philibertc/micronova_controller/wiki/How-to-build-it)
+describe other boards, **not a measured Lara pinout**. The DB9 shape does not
+imply bipolar RS232 levels. The signal ground is not automatically chassis/earth.
+
+Figure 2 separates the stove bus from the two ESP nodes. Its numbers are
+conditional examples, not measured operating points or a complete schematic.
+
+![Conditional voltage paths](figures/adapter.3.voltage-domains.svg)
+
+**Figure 2:** A conducting diode leaves the bus above TX by its forward drop.
+The NPN receive path needs its own verified 3.3 V pull-up; R1 is a base-current
+limiter, not a voltage divider or regulator.
+
+#### What D1, R1 and Q1 actually handle
+
+- **D1 transmits lows.** With its anode on the bus and cathode on TX,
+  `Vbus_low ~ VTX_low + Vf`. For an illustrative silicon forward drop of
+  0.6-0.8 V and TX close to zero, the stove sees about 0.6-0.8 V rather than
+  zero. A weak or overloaded TX can make it higher still. That is acceptable
+  only if it remains below the **actual stove receiver's** low-input limit.
+  A symbol does not establish `Vf`; it depends on part, current and temperature.
+- **D1 can also load the idle high.** TX-high at 3.3 V does not necessarily
+  release a bus pulled up to 5 V: D1 can conduct and limit it to roughly
+  `VTX_high + Vf`, for example 3.9-4.1 V. The bus pull-up then drives current
+  into the TX output. This is not an ideal open-drain interface and is not
+  proof of safe GPIO injection current. k3a reported a loaded bus around
+  3.8 V on his setup; that is not our Lara voltage.
+- **R1 limits Q1 base current.** When the stove drives its bus low while
+  TX remains high, an illustrative estimate is
+  `IB ~ (3.3 - Vbus_low - VBE) / 10000`, about **0.26 mA** for a zero-volt bus
+  and `VBE=0.7 V`. Actual values depend on Q1 and both drivers. R1 does not
+  divide a 5 V signal down to 3.3 V, supply the ESP, or pull RX high.
+- **Q1 transfers received lows.** With the emitter on the low bus and base
+  driven through R1, Q1 sinks its collector/RX. The RX low is roughly
+  `Vbus_low + VCE(on)`; it is not guaranteed to be zero. A too-strong RX
+  pull-up, wrong lead order or inadequate base drive can keep RX too high.
+  When Q1 is off, only a verified pull-up to the correct rail establishes
+  RX-high. Without it RX can float or rise too slowly.
+- **Echo is circuit-dependent.** During our own TX-low, Q1's base is also low
+  while its emitter is around the diode drop, so it is not normally
+  forward-biased. The drawing can therefore suppress echo rather than
+  reproduce every transmitted low. During a stove reply TX-high biases Q1
+  differently. Do not infer echo mode from the one-wire name alone.
+- **Protection is not established.** At bus-high the emitter can exceed the
+  base, reverse-biasing the base-emitter junction. Reset or an unpowered ESP
+  changes these stresses and back-power paths. Q1 ratings, TX current paths,
+  any clamp and the full bias circuit must be checked. k3a's later design
+  adds a TX zener; this does not mean that our three-component drawing
+  includes it, or that adding one arbitrarily makes the HAT safe.
+
+#### ESP receive thresholds versus stove thresholds
+
+Espressif's [ESP8266EX datasheet](https://www.espressif.com/sites/default/files/documentation/0a-esp8266ex_datasheet_en.pdf)
+electrical-characteristics table specifies `VIL <= 0.25*VIO` and
+`VIH >= 0.75*VIO`, with the high-input table maximum **3.6 V**
+([readable v6.6 table](https://www.manualshelf.com/manual/espressif/esp8266ex/data-sheet-english/page-24.html)).
+At `VIO=3.3 V`:
+
+| ESP RX level | Meaning |
+|---|---|
+| At or below **0.825 V**, within specified lower limit | Meets the low-input limit; aim substantially lower for margin |
+| Between **0.825 V and 2.475 V** | Not guaranteed as either low or high |
+| At or above **2.475 V**, within upper limit | Meets the high-input limit; a clean nominal 3.3 V high provides margin |
+| Above the specified upper limit | Not an acceptable operating level; do not feed stove 5 V directly to GPIO |
+
+These are **ESP input** limits, not the stove's. If Lara used a receiver with a
+`0.7*5 V` high-input requirement, a 3.3 V bus-high would be insufficient
+(3.5 V required); that is an illustration, **not identification of its MCU**.
+Nor does 3.9 V automatically prove adequate margin: supply variation, ground
+offset and noise must be accounted for. Treat 3.6 V as a table limit, not a
+recommended GPIO clamp target; design for the normal 3.3 V domain.
+
+#### What would distinguish a level problem from a parser problem?
+
+Correlate **raw electrical frames** with firmware transaction diagnostics,
+not just plausible decoded values. Bad checksums alone cannot distinguish them.
+
+| Observation | Candidate cause, not a diagnosis |
+|---|---|
+| ESP request looks correct at D8 but not at stove bus | Diode drop, weak TX sink, bus loading or wrong connection |
+| Stove reply looks correct on bus but D7 has invalid lows/highs | Q1 bias/pinout, missing or unsuitable RX pull-up, ground offset |
+| D7 stays valid but software reports bad/missing data | Echo handling, frame alignment, timeout, collision/late-byte handling or checksum logic |
+| ESP resets or Wi-Fi drops during activity | Supply sag/boot loading; distinguish from a low serial logic level |
+| Bus reaches neither a clean high nor low | Contention, loading or electrical fault; stop acquisition, do not increase polling |
+
+At 1200 baud a bit lasts about **833 microseconds**. A multimeter average
+cannot establish the low/high levels and edge settling at UART sample times.
+A qualified person using appropriately isolated equipment should record the
+bus, D8, D7 and ESP supply at idle, request and reply, including minima/maxima
+and rise/fall behavior. Establish safe ground/isolation first; do not connect
+a grounded scope or computer to an unverified stove circuit or probe energized
+internals yourself. An isolated bench emulation can test the HAT first.
+
+Keep writes disabled. Do not change diode type, resistor value, pull-up or
+firmware inversion blindly: a change that improves one voltage margin can
+worsen another or change echo behavior. The existing [bench checks](#5-establish-the-as-built-circuit-before-connecting)
+must cover both directions, reset and unpowered operation.
+
 ## 2. Configuration B: the conflicting MOSFET reference
 
 The previous page centered the following **different** reference topology.
@@ -88,7 +208,7 @@ It remains here for comparison, not as evidence of the owner's board.
 
 ![Separate MOSFET reference circuit](figures/adapter.1.schematic.svg)
 
-**Figure 2:** A BSS138 joins separate 5 V and 3.3 V pulled-up lines. ESP RX reads
+**Figure 3:** A BSS138 joins separate 5 V and 3.3 V pulled-up lines. ESP RX reads
 the low-voltage line directly; TX pulls it low through a Schottky diode.
 Unlike Figure 1, this circuit has two resistors and explicitly drawn supply rails.
 

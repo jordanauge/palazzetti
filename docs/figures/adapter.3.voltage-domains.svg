@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" role="img" aria-labelledby="title desc">
+  <title id="title">Conditional voltage paths in the retained NPN adapter</title>
+  <desc id="desc">Stove bus to diode to ESP TX; TX biases the NPN base through 10 kilohms. NPN emitter reads the bus and collector drives RX, which needs a verified 3.3 volt pull-up. Values are examples, not Lara measurements.</desc>
+  <defs>
+    <style>
+      .title { font: bold 24px sans-serif; fill: #243746; }
+      .label { font: 18px sans-serif; fill: #243746; }
+      .note { font: 16px sans-serif; fill: #465664; }
+      .bus { fill: #eaf4fc; stroke: #3498DB; stroke-width: 2; }
+      .device { fill: #eafaf1; stroke: #2ECC71; stroke-width: 2; }
+      .pending { fill: #fff3e8; stroke: #E67E22; stroke-width: 2; }
+      .wire { fill: none; stroke: #465664; stroke-width: 2; marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#465664"/></marker>
+  </defs>
+  <rect width="1000" height="500" fill="white"/>
+  <text x="30" y="40" class="title">Voltage domains: retained diode / 10k / NPN topology</text>
+  <text x="30" y="72" class="note">Functional paths only. Bias/protection omitted from owner drawing; no Lara measurements.</text>
+  <rect x="30" y="120" width="240" height="170" rx="12" class="bus"/>
+  <text x="48" y="150" class="label">Stove shared bus</text>
+  <text x="48" y="183" class="note">Reference unloaded high: ~5 V</text>
+  <text x="48" y="214" class="note">Stove-driven low: near 0 V</text>
+  <text x="48" y="246" class="note">Actual thresholds unknown</text>
+  <rect x="355" y="115" width="260" height="90" rx="12" class="device"/>
+  <text x="373" y="148" class="label">D1: anode bus, cathode TX</text>
+  <text x="373" y="178" class="note">Conducts bus to TX</text>
+  <path d="M270 160 H355 M615 160 H710" class="wire"/>
+  <rect x="715" y="115" width="255" height="90" rx="12" class="bus"/>
+  <text x="733" y="148" class="label">D8 / GPIO15 TX</text>
+  <text x="733" y="178" class="note">Nominal output: 0 / 3.3 V</text>
+  <rect x="355" y="270" width="260" height="105" rx="12" class="device"/>
+  <text x="373" y="303" class="label">Q1 NPN receive path</text>
+  <text x="373" y="334" class="note">Emitter: bus; collector: RX</text>
+  <text x="373" y="359" class="note">Base from TX through 10k</text>
+  <path d="M270 260 H310 V320 H355 M615 320 H710 M840 205 V245 H485 V270" class="wire"/>
+  <text x="650" y="239" class="note">Base bias</text>
+  <rect x="715" y="270" width="255" height="105" rx="12" class="pending"/>
+  <text x="733" y="303" class="label">D7 / GPIO13 RX</text>
+  <text x="733" y="334" class="note">Needs verified 3.3 V pull-up</text>
+  <text x="733" y="359" class="note">Never direct stove 5 V</text>
+  <text x="30" y="422" class="label">Examples with TX high = 3.3 V and diode Vf = 0.7 V:</text>
+  <text x="30" y="454" class="note">Bus TX-low ~0.7 V; loaded idle may approach ~4.0 V. Both need actual stove margin checks.</text>
+  <text x="30" y="481" class="note">Signal translation is not power regulation, galvanic isolation or verified overvoltage protection.</text>
+</svg>

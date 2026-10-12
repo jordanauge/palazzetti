@@ -10,15 +10,18 @@ yet; check them before connecting anything to the stove.
 
 ![Wiring overview](figures/hardware.1.wiring.svg)
 
-**Figure 1**: Signal chain. The stove's Micronova board exposes a 5 V single-wire serial bus. A cable ends in the
+**Figure 1**: Signal chain. Community Micronova references describe a nominal 5 V single-wire serial bus;
+the actual Lara levels remain unmeasured. A cable ends in the
 device's DB9 ("RS232") plug; the adapter splits the bus into TX/RX at 3.3 V for the ESP8266's UART0 on its
 alternate pins. Logs go out on UART1 so that UART0 is dedicated to the stove.
 
 This applies to stoves with a Micronova-protocol board, such as the Ecofire Lara. Fumis boards use a different
 link; see [boards.md](boards.md).
 
-The "RS232" plug only refers to the **connector**. The signal on it is **not** RS232 (±12 V); it is the stove's 5 V
-single-wire bus. Never plug it into a real RS232 port or a USB-RS232 converter.
+The "RS232" plug only refers to the **connector**. The signal on it is **not** bipolar RS232; it is a single-wire logic bus.
+Never plug it into a real RS232 port or a USB-RS232 converter.
+See [adapter voltage domains](adapter.md#11-voltage-levels-and-error-mechanisms)
+for expected levels, diode voltage drop, transistor bias and missing measurements.
 
 ## 2. Bill of materials
 
@@ -86,7 +89,7 @@ ESP32 ports require adapting the board/UART configuration; they have not been va
 
 | Signal | Stove connector pin | DB9 pin on the device | Notes |
 |---|---|---|---|
-| Serial (bus) | TO VERIFY | TO VERIFY | 5 V idle, pulled low by talkers |
+| Serial (bus) | TO VERIFY | TO VERIFY | Reference nominal 5 V idle; loaded idle/low and Lara thresholds unmeasured |
 | +5 V | TO VERIFY | TO VERIFY | available on most Micronova boards; current budget unknown |
 | GND | TO VERIFY | TO VERIFY | |
 | other (+20 V on some Micronova boards) | TO VERIFY | not connected | **never connect to the ESP** |
@@ -113,8 +116,9 @@ How to fill this table safely:
    plz --host palazzetti.local info
    plz --host palazzetti.local read ram 0xF9     # 0x1A when the stove is off
    ```
-5. Watch `ok`/`timeout`/`bad` counters in `plz info`: a few timeouts are normal (bus shared with the panel);
-   only timeouts means a wiring or level problem; only bad checksums means echo or framing problems
-   (try `echo: true`/`false`, check 2 stop bits).
+5. Watch `ok`/`timeout`/`bad` counters in `plz info`. Timeouts and bad checksums can arise from
+   voltage margins, wiring, echo/framing, timing or contention; counters alone do not diagnose them.
+   Panel bus topology remains unverified. Correlate raw frames and diagnostics before changing
+   echo settings; see the [electrical fault comparison](adapter.md#11-voltage-levels-and-error-mechanisms).
 
 [← README](../README.md) · [adapter →](adapter.md)

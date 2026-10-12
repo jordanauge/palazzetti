@@ -102,6 +102,14 @@ The voltage domains must be distinguished:
 | D8 / GPIO15 TX | Approximately 0/3.3 V when UART drives it | Actual loaded output and reset/unpowered behavior not measured |
 | D7 / GPIO13 RX | Must be a clean, ESP-compatible low/high, normally near 0/3.3 V | Pull-up existence, rail, strength and Q1 output levels unverified |
 
+For design purposes the stove domain is therefore **nominal 5 V**, supported
+by both published observations and the owner's unloaded Lara measurement.
+The owner identifies the board as Micronova; the
+[Lara board record](boards.md#2-the-ecofire-lara-board) identifies the documented
+Palazzetti part and distinguishes it from unverified I023/L023/N100 PCB names.
+The remaining uncertainty concerns precise thresholds, pull-up/loading and
+as-built protection, not the nominal voltage domain.
+
 Sources: [k3a serial investigation](https://k3a.me/ir-controller-for-pellet-stove-with-micronova-controller-stufe-e-pellet-aria-ir-telecomando/)
 and the [philibertc build reference](https://github.com/philibertc/micronova_controller/wiki/How-to-build-it)
 describe other boards, **not a measured Lara pinout**. The owner's separate

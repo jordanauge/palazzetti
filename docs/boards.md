@@ -28,8 +28,10 @@ Connection Box hides the difference behind one HTTP API.
 | Open projects | ESPHome `micronova`, philibertc, eni23… | Domochip/WPalaControl, Domochip/Palazzetti |
 | **This repository** | **implemented** | **not implemented** |
 
-"Micronova" here names the protocol. Whether the Lara board is made by Micronova or by Palazzetti using
-Micronova's protocol is not known yet (see §2); the protocol is what matters to the code.
+"Micronova" names the protocol family and the board manufacturer identified by
+the owner. The exact installed PCB model/revision still needs its marking:
+the Lara spare-part reference below is documented, but is not automatically
+an I023, L023 or N100 designation.
 
 The Fumis column comes from [Domochip/Palazzetti](https://github.com/Domochip/Palazzetti), the serial layer of the
 Connection Box rewritten from its firmware, and [Domochip/WPalaControl](https://github.com/Domochip/WPalaControl).
@@ -43,10 +45,37 @@ We have not checked it on a Fumis stove.
 | 2020 capture: 46.9 h of sequential scans of all 256 RAM addresses, sent as 2-byte Micronova requests at 1200 8N2; accepted replies and failed reads must be distinguished (legacy checksum caveats apply) | the board answers the Micronova protocol; this does not mean every read succeeded | private repo `dumps/2020-02-10-ram/`, [reverse-engineering.md](reverse-engineering.md) |
 | The state register (RAM 0xF9) follows ignition, working and cleaning phases in that capture | the replies are live stove data, not noise | [memory-map.md](memory-map.md) |
 | RAM 0x0D is constant 232 | unidentified constant; inspected bridge uses 6E for dispatch and 0D for a feeder reading on other layouts | [connection-box.md](connection-box.md) |
+| Owner identifies the board as Micronova, 2026-10-12 | Manufacturer identification supplied by owner; exact PCB designation/revision not supplied | Owner report |
+| Owner measures serial signal at 5 V relative to stove signal GND, ESP/HAT disconnected, 2026-10-12 | Actual Lara unloaded signal-voltage observation agrees with the nominal 5 V Micronova bus | Owner measurement; instrument and activity/state not recorded |
+
+**Documented Lara board identification:** Palazzetti **895705170**, catalogue
+description **00 252010 1**, for the listed 10/2003-01/2008 Ecofire Mini/Lara
+generation. A [second supplier listing](https://www.gnesato.com/ricambi/categorie/schede-elettroniche/scheda-elettronica-palazzetti-895705170/)
+also names Lara and gives **0025201_1** as its technical code (accessed
+2026-10-12). Preserve both source spellings rather than silently normalising
+them. The separately listed **895705120 / 002520101 microchip** is not another
+PCB model or proof of the installed firmware.
+
+The retained **Micronova I023 LCD Aria** installer manual, PDF pages 6-8,
+documents a controller board, a console connector **CN5**, and the serial
+connector **CN13**, described as requiring an adapter. Page 8 labels **CN9
+pin 3 +5 V for the extractor encoder**; that is not a CN13 signal specification.
+The manual's connector table does **not** provide CN13 logic thresholds.
+Having this manual in the collection does not identify Lara's installed PCB
+as I023, and L023/N100 references for other stoves must not fill that gap.
+
+For interface design, use **nominal 5 V single-wire logic on the stove side
+and 3.3 V logic on the ESP side**. The nominal stove voltage is supported by
+[published Micronova bus observations](https://k3a.me/ir-controller-for-pellet-stove-with-micronova-controller-stufe-e-pellet-aria-ir-telecomando/)
+and now the owner's Lara measurement. What is still unknown is the exact
+receiver's guaranteed high/low thresholds and the HAT-loaded waveform, not
+whether to treat this as a 5 V bus. See the
+[voltage-margin analysis](adapter.md#11-voltage-levels-and-error-mechanisms).
 
 Still **to verify**:
 
-- the board's own markings and photos (private repo `notes/hardware/`): maker, model, firmware version;
+- the board's own markings and photos: corroborate owner-identified maker,
+  identify exact PCB model/revision and installed firmware;
 - whether the display panel matches the Micronova *I023 LCD Aria* manual kept in the reference repo `resources/manuals/micronova/`;
 - the connector pinout (see [hardware.md § stove connector](hardware.md#4-stove-connector-to-verify)).
 

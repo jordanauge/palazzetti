@@ -27,6 +27,24 @@ for expected levels, diode voltage drop, transistor bias and missing measurement
 
 ## 2. Bill of materials
 
+### Lara controller identification and voltage domain
+
+The owner identifies the controller as **Micronova**. The Lara parts catalogue
+identifies **Palazzetti 895705170 / 00 252010 1** for the 10/2003-01/2008
+generation; exact installed PCB markings/revision remain to be recorded.
+See [Lara board evidence](boards.md#2-the-ecofire-lara-board) for the second
+supplier reference and why the retained I023 manual does not prove an I023 PCB.
+
+Treat the stove interface as a **nominal 5 V single-wire logic bus**, not an
+unknown-voltage interface: the owner measured 5 V on the serial signal with
+the ESP/HAT disconnected, consistent with published Micronova observations.
+The adapter must translate to **3.3 V ESP logic**. A documented nominal voltage
+does not specify the stove receiver's thresholds or validate the diode-loaded
+high/low levels. Neither the serial voltage nor a manual's encoder +5 V label
+establishes the HAT's VCC supply contact.
+
+### Interface parts
+
 | Item | Notes |
 |---|---|
 | NodeMCU Devkit V3, ESP-12F (ESP8266, 4 MB) | default `board: nodemcuv2` in [base package](../example/palazzetti-base.yaml); this PlatformIO ID also covers V3 |
